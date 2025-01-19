@@ -3,7 +3,11 @@ const dotenv = require('dotenv').config();
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+
 const userRoutes = require('./routes/userRoutes')
+
+const errorHandler = require('./middlewares/errorHandler');
+
 
 const app = express();
 
@@ -21,6 +25,8 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/user', userRoutes);
 
 const port = process.env.PORT || 8081;
+app.use("/api/admin", require('./routes/adminRoutes'));
+app.use(errorHandler);
 
 app.listen(port, ()=>{
     console.log(`Server is running on port ${port}`);
