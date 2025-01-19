@@ -1,11 +1,12 @@
 const asyncHandler = require('express-async-handler');
 const Admin = require('../models/Admin');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 // Sign up
 const registerAdmin = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const { name, email, password, phone } = req.body;
+    if (!name || !email || !password || !phone) {
         res.status(400);
         throw new Error('Email and Password are required');
     }
@@ -16,13 +17,20 @@ const registerAdmin = asyncHandler(async (req, res) => {
         throw new Error('Admin already exists');
     }
 
+    if (password.length < 6) {
+        res.status(400);
+        throw new Error('Password must be at least 6 characters');
+    }
+
     const admin = await Admin.create({
+        name,
         email,
-        password
+        password,
+        phone
     });
 
     if (admin) {
-        res.status(200).json({ _id: admin.id, email: admin.email });
+        res.status(200).json({ _id: admin.id, email: admin.email, name: admin.name });
     } else {
         res.status(400);
         throw new Error('Admin data is not valid');
@@ -30,4 +38,32 @@ const registerAdmin = asyncHandler(async (req, res) => {
     res.json({ message: "Register Admin" });
 });
 
-module.exports = {registerAdmin};
+// Login 
+const loginAdmin = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        res.status(400);
+        throw new Error('Email and Password are required');
+    }
+    // Check if admin exists
+    const admin = await Admin.findOne({ email: email });
+    // compare password with hashed password
+    if (admin && (await bcrypt.compare(password, admin.password))) {
+        console.log("Password is correct!");
+        // Provide access token in the response
+        const accessToken = jwt.sign({
+            admin: {
+                id: admin.id,
+            },
+        },
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: "30m" }
+        );
+        res.status(200).json({ accessToken });
+    } else {
+        res.status(401);
+        throw new Error('Invalid credentials');
+    }
+});
+
+module.exports = { registerAdmin, loginAdmin };
