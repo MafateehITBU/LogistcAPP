@@ -45,25 +45,25 @@ const loginAdmin = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Email and Password are required');
     }
+    
     // Check if admin exists
     const admin = await Admin.findOne({ email: email });
-    // compare password with hashed password
+    
+    // Check if password matches
     if (admin && (await bcrypt.compare(password, admin.password))) {
         console.log("Password is correct!");
-        // Provide access token in the response
-        const accessToken = jwt.sign({
-            admin: {
-                id: admin.id,
-            },
-        },
-            process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: "30m" }
-        );
+        
+        // Create token
+        const accessToken = jwt.sign({ id: admin.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "30m" });
+        
+        console.log("Generated Token:", accessToken);  // Log the token
+        
         res.status(200).json({ accessToken });
     } else {
         res.status(401);
         throw new Error('Invalid credentials');
     }
 });
+
 
 module.exports = { registerAdmin, loginAdmin };
