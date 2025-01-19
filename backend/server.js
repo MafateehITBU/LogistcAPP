@@ -15,19 +15,19 @@ app.use(cors());
 app.use(bodyParser.json());
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Database connection error:', err));
-
-
-
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('Database connection error:', err));
+    
 
 // Routes
 app.use('/api/user', userRoutes);
+app.use("/api/admin", require('./routes/adminRoutes'));
+app.use(errorHandler);
 
 const port = process.env.PORT || 8081;
 app.use("/api/admin", require('./routes/adminRoutes'));
 app.use(errorHandler);
 
-app.listen(port, ()=>{
+app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
+const { isAdmin } = require('../middlewares/authMiddleware');
 
 // Sign up route
 router.post('/signup', userController.signup);
@@ -9,7 +10,7 @@ router.post('/signup', userController.signup);
 router.post('/signin', userController.signin);
 
 // Get all users
-router.get('/users', userController.getAllUsers);
+router.get('/users', isAdmin, userController.getAllUsers);
 
 // Get a single user by ID
 router.get('/users/:id', userController.getUser);
@@ -18,7 +19,7 @@ router.get('/users/:id', userController.getUser);
 router.put('/users/:id', userController.updateUser);
 
 // Delete a user by ID
-router.delete('/users/:id', userController.deleteUser);
+router.delete('/users/:id', isAdmin, userController.deleteUser);
 
 module.exports = router;
 

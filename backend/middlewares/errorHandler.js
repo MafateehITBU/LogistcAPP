@@ -34,7 +34,11 @@ const errorHandler = (err, req, res, next) => {
             });
             break;
         default:
-            console.log("No error all good!");
+            res.status(statusCode).json({
+                title: "Error",
+                message: err.message || "An unexpected error occurred",
+                stackTrace: isProduction ? null : err.stack,
+            });
             break;
     }
 }
