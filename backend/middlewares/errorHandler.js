@@ -37,7 +37,7 @@ const errorHandler = (err, req, res, next) => {
             res.status(statusCode).json({
                 title: "Error",
                 message: err.message || "An unexpected error occurred",
-                stackTrace: isProduction ? null : err.stack,
+                stackTrace:  err.stack,
             });
             break;
     }

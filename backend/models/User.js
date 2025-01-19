@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   points: { type: Number, default: 0 }, // Reward points
   walletNo: { type: String, required: false }, // Wallet number
   shift: { type: String, enum: ['A', 'B', 'C'], required: false }, 
+  profilePicture: { type: String, required: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
