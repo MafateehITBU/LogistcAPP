@@ -1,32 +1,33 @@
 const asyncHandler = require('express-async-handler');
 const Admin = require('../models/Admin');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 // Sign up
-const register = asyncHandler(async (req, res) => {
+const registerAdmin = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         res.status(400);
         throw new Error('Email and Password are required');
     }
-    // Checking if the user already in the database
-    const userAvailable = await Admin.findOne({ email });
-    if (userAvailable) {
+    // Checking if the Admin already in the database
+    const adminAvailable = await Admin.findOne({ email });
+    if (adminAvailable) {
         res.status(400);
-        throw new Error('User already exists');
+        throw new Error('Admin already exists');
     }
 
-    const user = await Admin.create({
+    const admin = await Admin.create({
         email,
         password
     });
 
-    if (user) {
-        res.status(200).json({ _id: user.id, email: user.email });
+    if (admin) {
+        res.status(200).json({ _id: admin.id, email: admin.email });
     } else {
         res.status(400);
-        throw new Error('User data is not valid');
+        throw new Error('Admin data is not valid');
     }
-    res.json({ message: "Register User" });
+    res.json({ message: "Register Admin" });
 });
+
+module.exports = {registerAdmin};
