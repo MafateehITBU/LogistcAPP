@@ -22,7 +22,4 @@ router.put('/:id', isAdmin, captainController.updateCaptain);
 // Delete a captain by ID
 router.delete('/:id', isAdmin, captainController.deleteCaptain);
 
-// Route for uploading profile picture
-router.post('/upload-profile-picture', validateCaptainToken, captainController.uploadProfilePicture);
-
 module.exports = router;

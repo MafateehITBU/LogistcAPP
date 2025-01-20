@@ -22,8 +22,5 @@ router.put('/:id', userController.updateUser);
 // Delete a user by ID
 router.delete('/:id', isAdmin, userController.deleteUser);
 
-// Route for uploading profile picture
-router.post('/upload-profile-picture', validateToken, userController.uploadProfilePicture);
-
 module.exports = router;
 
