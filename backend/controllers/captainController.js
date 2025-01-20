@@ -45,21 +45,21 @@ exports.uploadProfilePicture = [
             const imageUrl = result.secure_url;
 
             // Use the user ID from the decoded token to find and update the user
-            const user = await User.findByIdAndUpdate(
-                req.user.userId,
+            const captain = await Captain.findByIdAndUpdate(
+                req.captain.captainId,
                 { profilePicture: imageUrl },
                 { new: true }
             );
 
-            if (!user) {
-                return res.status(404).json({ error: 'User not found' });
+            if (!captain) {
+                return res.status(404).json({ error: 'captain not found' });
             }
 
             // Delete the temporary file after uploading to Cloudinary
             fs.unlinkSync(req.file.path);
 
-            // Return the updated user with the new profile picture
-            res.status(200).json({ message: 'Profile picture uploaded successfully', user });
+            // Return the updated captain with the new profile picture
+            res.status(200).json({ message: 'Profile picture uploaded successfully', captain });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

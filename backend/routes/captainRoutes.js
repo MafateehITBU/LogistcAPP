@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const captainController = require('../controllers/captainController');
 const { isAdmin } = require('../middlewares/authMiddleware');
-const validateToken = require('../middlewares/validateTokenHandler');
+const validateCaptainToken = require('../middlewares/captainTokenHandler');
 
 // Sign up route
 router.post('/signup', captainController.signup);
@@ -23,6 +23,6 @@ router.put('/:id', isAdmin, captainController.updateCaptain);
 router.delete('/:id', isAdmin, captainController.deleteCaptain);
 
 // Route for uploading profile picture
-router.post('/upload-profile-picture', validateToken, captainController.uploadProfilePicture);
+router.post('/upload-profile-picture', validateCaptainToken, captainController.uploadProfilePicture);
 
 module.exports = router;
