@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const captainController = require('../controllers/captainController');
+const captainController = require('../controllers/fulltimeCaptainController');
 const captainAuth = require('../middlewares/capitnAuthMidllware');
 const adminAuth = require('../middlewares/adminAuthMiddleware');
 const userAuth = require('../middlewares/userAuthMiddleware');
 
 // Sign up route
-router.post('/signup', captainController.signup);
+router.post('/signup', adminAuth, captainController.signup);
 
 // Sign-in route
 router.post('/signin', captainController.signin);

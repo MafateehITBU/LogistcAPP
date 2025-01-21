@@ -6,7 +6,8 @@ const cors = require('cors');
 
 const userRoutes = require('./routes/userRoutes');
 const carRoutes = require('./routes/carRoutes');
-const captainRoutes = require('./routes/captainRoutes');
+const fulltimeCaptainRoutes = require('./routes/fulltimeCaptainRoutes');
+const freelanceCaptainRoutes = require('./routes/freelanceCaptainRoutes');
 
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -25,7 +26,8 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/user', userRoutes);
 app.use("/api/admin", require('./routes/adminRoutes'));
 app.use("/api/car", carRoutes);
-app.use("/api/captain", captainRoutes);
+app.use("/api/fulltimeCaptain", fulltimeCaptainRoutes);
+app.use("/api/freelanceCaptain", freelanceCaptainRoutes);
 app.use(errorHandler);
 
 const port = process.env.PORT || 8081;

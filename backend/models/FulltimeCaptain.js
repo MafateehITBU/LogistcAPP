@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const captainSchema = mongoose.Schema({
+const fulltimeCaptainSchema = mongoose.Schema({
     name: {
         type: String,
         required: true,
@@ -44,17 +44,13 @@ const captainSchema = mongoose.Schema({
         required: false,
         default: 'default_profile_picture.jpg',
     },
-    contractType: {
-        type: String,
-        enum: ['freelance', 'fulltime'],
-    },
     car_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Car',
     }
 }, { timestamps: true });
 
-captainSchema.pre('save', async function (next) {
+fulltimeCaptainSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
     try {
         this.password = await bcrypt.hash(this.password, 10);
@@ -64,4 +60,4 @@ captainSchema.pre('save', async function (next) {
     }
 });
 
-module.exports = mongoose.model('Captain', captainSchema);
+module.exports = mongoose.model('FulltimeCaptain', fulltimeCaptainSchema);

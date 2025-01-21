@@ -8,6 +8,24 @@ const carSchema = new mongoose.Schema({
     car_type: {
         type: String,
         required: true,
+    },
+    manufactureYear: {
+        type: String,
+        required: true,
+    },
+    licenseExpiryDate: {
+        type: String,
+        required: true,
+    },
+    insuranceType: {
+        type: String,
+        enum: ['comprehensive', 'thirdPartyLiability', 'partial'],
+        required: true,
+    },
+    carOwnership: {
+        type: String,
+        enum: ['company', 'captain'],
+        required: true,
     }
 },{ timestamps: true });
 

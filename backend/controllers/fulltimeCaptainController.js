@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-const Captain = require('../models/Captain');
+const Captain = require('../models/FulltimeCaptain');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const fs = require('fs');
@@ -32,7 +32,7 @@ exports.signup = [
     upload.single('profilePic'),
     asyncHandler(async (req, res) => {
         try {
-            const { name, email, password, phone, role, contractType } = req.body;
+            const { name, email, password, phone, role, shift } = req.body;
 
             // Check if a file is uploaded
             let profilePictureUrl = null;
@@ -51,7 +51,7 @@ exports.signup = [
                 password,
                 phone,
                 role,
-                contractType,
+                shift,
                 profilePicture: profilePictureUrl, // Save the picture URL
             });
             await captain.save();
@@ -106,7 +106,7 @@ exports.updateCaptain = [
             if (req.file) {
                 const result = await cloudinary.uploader.upload(req.file.path);
                 const profilePictureUrl = result.secure_url;
-2
+                2
                 updates.profilePicture = profilePictureUrl;
 
                 fs.unlinkSync(req.file.path);
