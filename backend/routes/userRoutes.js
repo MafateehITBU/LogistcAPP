@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { isAdmin } = require('../middlewares/authMiddleware');
-const validateToken = require('../middlewares/validateTokenHandler');
+const captainAuth = require('../middlewares/capitnAuthMidllware');
+const adminAuth = require('../middlewares/adminAuthMiddleware');
+const userAuth = require('../middlewares/userAuthMiddleware');
 
 // Sign up route
 router.post('/signup', userController.signup);
@@ -11,7 +12,7 @@ router.post('/signup', userController.signup);
 router.post('/signin', userController.signin);
 
 // Get all users
-router.get('/', isAdmin, userController.getAllUsers);
+router.get('/', adminAuth, userController.getAllUsers);
 
 // Get a single user by ID
 router.get('/:id', userController.getUser);
@@ -20,7 +21,7 @@ router.get('/:id', userController.getUser);
 router.put('/:id', userController.updateUser);
 
 // Delete a user by ID
-router.delete('/:id', isAdmin, userController.deleteUser);
+router.delete('/:id', adminAuth, userController.deleteUser);
 
 module.exports = router;
 

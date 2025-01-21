@@ -106,7 +106,7 @@ exports.updateCaptain = [
             if (req.file) {
                 const result = await cloudinary.uploader.upload(req.file.path);
                 const profilePictureUrl = result.secure_url;
-
+2
                 updates.profilePicture = profilePictureUrl;
 
                 fs.unlinkSync(req.file.path);
