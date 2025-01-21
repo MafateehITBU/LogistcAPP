@@ -11,14 +11,11 @@ const adminAuth = asyncHandler(async (req, res, next) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
         token = authHeader.split(' ')[1];
 
-        // Verify token
-        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, decoded) => {
-            if (err) {
-                res.status(401);
-                throw new Error('Invalid or expired token');
-            }
+        try {
+            // Verify token
+            const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-            // Find the admin based on the decoded token id
+            // Find the admin based on the decoded token ID
             const admin = await Admin.findById(decoded.id);
             if (!admin) {
                 res.status(401);
@@ -27,11 +24,14 @@ const adminAuth = asyncHandler(async (req, res, next) => {
 
             // Attach the admin object to the request for further use in controllers
             req.admin = admin;
-            next();  // Proceed to the next middleware or route handler
-        });
+            next(); // Proceed to the next middleware or route handler
+        } catch (err) {
+            res.status(401);
+            res.json({ message: 'Invalid or expired token' });
+        }
     } else {
         res.status(401);
-        throw new Error('Authorization token missing');
+        res.json({ message: 'Authorization token missing' });
     }
 });
 
