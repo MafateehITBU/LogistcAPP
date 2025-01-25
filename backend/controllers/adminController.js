@@ -19,7 +19,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
         console.log("Password is correct!");
         
         // Create token
-        const accessToken = jwt.sign({ id: admin.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
+        const accessToken = jwt.sign({ id: admin.id, role: "admin" }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
         
         console.log("Generated Token:", accessToken);  // Log the token
         
