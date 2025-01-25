@@ -6,7 +6,7 @@ const adminAuth = require('../middlewares/adminAuthMiddleware');
 const userAuth = require('../middlewares/userAuthMiddleware');
 
 // Sign up route
-router.post('/signup', adminAuth, captainController.signup);
+router.post('/signup', captainController.signup);
 
 // Sign-in route
 router.post('/signin', captainController.signin);

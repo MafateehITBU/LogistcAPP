@@ -40,7 +40,7 @@ exports.signup = [
     ]),
     asyncHandler(async (req, res) => {
         try {
-            const { name, email, password, phone, role, shift, car_palette, car_type, manufactureYear, licenseExpiryDate, insuranceType, carOwnership } = req.body;
+            const { name, email, password, phone, shift, car_palette, car_type, manufactureYear, licenseExpiryDate, insuranceType, carOwnership } = req.body;
 
             // Upload files to Cloudinary
             const uploadFile = async (file) => {
@@ -78,7 +78,6 @@ exports.signup = [
                 email,
                 password,
                 phone,
-                role,
                 shift,
                 profilePicture: profilePictureUrl, // Save the picture URL
                 car: createdCar._id,

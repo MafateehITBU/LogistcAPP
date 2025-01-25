@@ -14,6 +14,15 @@ const userSchema = new mongoose.Schema({
     type: String, 
     required: true, 
     enum: ['male', 'female'] // Restrict values to 'male' or 'female'
+  },
+  role: {
+    type: String,
+    required: true,
+    enum: ['normal', 'partner']
+  },
+  inventory: {
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Inventory',
   }
 }, { timestamps: true });
 

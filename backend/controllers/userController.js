@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Inventory = require('../models/Inventory');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
@@ -31,7 +32,7 @@ exports.signup = [
     upload.single('profilePic'),
     asyncHandler(async (req, res) => {
         try {
-            const { name, email, password, phone, age, gender } = req.body;
+            const { name, email, password, phone, age, gender, role } = req.body;
 
             // Validate gender
             if (!['male', 'female'].includes(gender)) {
@@ -51,16 +52,37 @@ exports.signup = [
                 fs.unlinkSync(req.file.path);
             }
 
-            const user = new User({
-                name,
-                email,
-                password: hashedPassword,
-                phone,
-                age,
-                gender,
-                profilePicture: profilePictureUrl // Save the picture URL
-            });
+            let user;
 
+            if (role === 'partner') {
+                const inventory = new Inventory();
+                const createdInventory = await inventory.save();
+
+                user = new User({
+                    name,
+                    email,
+                    password: hashedPassword,
+                    phone,
+                    age,
+                    gender,
+                    profilePicture: profilePictureUrl, // Save the picture URL
+                    role,
+                    inventory: createdInventory.id,
+                });
+            } else {
+                user = new User({
+                    name,
+                    email,
+                    password: hashedPassword,
+                    phone,
+                    age,
+                    gender,
+                    profilePicture: profilePictureUrl, // Save the picture URL
+                    role,
+                });
+            }
+
+            // Save the user to the database
             await user.save();
 
             res.status(201).json({

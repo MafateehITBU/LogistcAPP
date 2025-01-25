@@ -22,8 +22,7 @@ const freelanceCaptainSchema = mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['procurement', 'delivery'],
-        required: true,
+        default: 'delivery',
     },
     walletNo: {
         type: String,
