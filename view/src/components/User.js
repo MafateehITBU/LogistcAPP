@@ -1,9 +1,76 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DataTable from "react-data-table-component";
 import Swal from "sweetalert2";
+import axiosInstance from "../axiosConfig";
 
 const User = () => {
+    const [users, setUsers] = useState([]);
     const [filterText, setFilterText] = useState("");
+    const [selectedUser, setSelectedUser] = useState(null);
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const fetchUsers = async () => {
+        try {
+            const response = await axiosInstance.get("/user");
+            setUsers(response.data);
+        } catch (error) {
+            console.error("Error fetching users:", error);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "Do you really want to delete this user?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, delete it!",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await axiosInstance.delete(`/user/${id}`);
+                    Swal.fire("Deleted!", "The user has been deleted.", "success");
+                    // Update the state to remove the deleted user
+                    setUsers((prevUsers) => prevUsers.filter((user) => user._id !== id));
+                } catch (error) {
+                    console.error("Error deleting user:", error);
+                }
+            }
+        });
+    };
+
+
+    const handleEdit = (user) => {
+        setSelectedUser(user);
+        const modal = new window.bootstrap.Modal(document.getElementById("editUserModal"));
+        modal.show();
+    };
+
+    const handleUpdate = async () => {
+        try {
+            const response = await axiosInstance.put(`/user/${selectedUser._id}`, selectedUser);
+            Swal.fire("Updated!", "The user has been updated successfully.", "success");
+
+            // Update the state with the edited user details
+            setUsers((prevUsers) =>
+                prevUsers.map((user) =>
+                    user._id === selectedUser._id ? { ...response.data } : user
+                )
+            );
+
+            const modal = window.bootstrap.Modal.getInstance(document.getElementById("editUserModal"));
+            modal.hide();
+            fetchUsers();
+        } catch (error) {
+            console.error("Error updating user:", error);
+        }
+    };
+
 
     const columns = [
         {
@@ -52,8 +119,17 @@ const User = () => {
                 <div className="form-button-action">
                     <button
                         type="button"
+                        className="btn btn-link btn-primary btn-lg"
+                        title="Edit User"
+                        onClick={() => handleEdit(row)}
+                    >
+                        <i className="fa fa-edit"></i>
+                    </button>
+                    <button
+                        type="button"
                         className="btn btn-link btn-danger"
-                        onClick={() => handleDelete(row.id)}
+                        title="Delete User"
+                        onClick={() => handleDelete(row._id)}
                     >
                         <i className="fa fa-times"></i>
                     </button>
@@ -61,67 +137,15 @@ const User = () => {
             ),
         },
     ];
-    const customStyles = {
-        headCells: {
-            style: {
-                fontWeight: "bold",
-                fontSize: "16px", 
-            },
-        },
-    };
 
-    // Sample Data
-    const data = [
-        {
-            id: 1,
-            name: "Tiger Nixon",
-            email: "tiger.nixon@example.com",
-            phone: "123-456-7890",
-            orders: 25,
-            points: 120,
-            walletNo: "WN123456",
-            profilePicture: "https://via.placeholder.com/50",
-            age: 36,
-            gender: "Male",
-        },
-        {
-            id: 2,
-            name: "Garrett Winters",
-            email: "garrett.winters@example.com",
-            phone: "987-654-3210",
-            orders: 30,
-            points: 150,
-            walletNo: "WN654321",
-            profilePicture: "https://via.placeholder.com/50",
-            age: 45,
-            gender: "Female",
-        },
-        // Add more user data as needed
-    ];
+    const filteredUsers = users.filter((user) => {
+        return (
+            user.name?.toLowerCase().includes(filterText.toLowerCase()) ||
+            user.email?.toLowerCase().includes(filterText.toLowerCase()) ||
+            user.phone?.toLowerCase().includes(filterText.toLowerCase())
+        );
+    });
 
-    const filteredData = data.filter(
-        (item) =>
-            item.name.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.email.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.phone.toLowerCase().includes(filterText.toLowerCase())
-    );
-
-    const handleDelete = (id) => {
-            Swal.fire({
-                title: "Are you sure?",
-                text: "Do you really want to delete this item?",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#3085d6",
-                cancelButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire("Deleted!", "Your item has been deleted.", "success");
-                    // Add the delete logic here
-                }
-            });
-        };
 
     return (
         <div className="container" style={{ marginTop: "80px" }}>
@@ -142,13 +166,121 @@ const User = () => {
                         <div className="card-body">
                             <DataTable
                                 columns={columns}
-                                data={filteredData}
+                                data={filteredUsers}
                                 pagination
                                 responsive
                                 highlightOnHover
                                 striped
-                                customStyles={customStyles}
+                                customStyles={{
+                                    headCells: {
+                                        style: {
+                                            fontWeight: "bold",
+                                            fontSize: "16px",
+                                        },
+                                    },
+                                }}
                             />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Edit User Modal */}
+            <div
+                className="modal fade"
+                id="editUserModal"
+                tabIndex="-1"
+                role="dialog"
+                aria-hidden="true"
+            >
+                <div className="modal-dialog" role="document">
+                    <div className="modal-content">
+                        <div className="modal-header border-0">
+                            <h5 className="modal-title">Edit User</h5>
+                            <button
+                                type="button"
+                                className="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close"
+                            ></button>
+                        </div>
+                        <div className="modal-body">
+                            <form>
+                                <div className="form-group">
+                                    <label>Name</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={selectedUser?.name || ""}
+                                        onChange={(e) =>
+                                            setSelectedUser({ ...selectedUser, name: e.target.value })
+                                        }
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Email</label>
+                                    <input
+                                        type="email"
+                                        className="form-control"
+                                        value={selectedUser?.email || ""}
+                                        onChange={(e) =>
+                                            setSelectedUser({ ...selectedUser, email: e.target.value })
+                                        }
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Phone</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={selectedUser?.phone || ""}
+                                        onChange={(e) =>
+                                            setSelectedUser({ ...selectedUser, phone: e.target.value })
+                                        }
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Gender</label>
+                                    <select
+                                        className="form-select"
+                                        value={selectedUser?.gender || ""}
+                                        onChange={(e) =>
+                                            setSelectedUser({ ...selectedUser, gender: e.target.value })
+                                        }
+                                    >
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Age</label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        value={selectedUser?.age || ""}
+                                        onChange={(e) =>
+                                            setSelectedUser({ ...selectedUser, age: e.target.value })
+                                        }
+                                    />
+                                </div>
+                            </form>
+                        </div>
+                        <div className="modal-footer border-0">
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={handleUpdate}
+                            >
+                                Save Changes
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-danger"
+                                data-bs-dismiss="modal"
+                            >
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>

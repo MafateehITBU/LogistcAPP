@@ -1,37 +1,134 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DataTable from "react-data-table-component";
 import Swal from "sweetalert2";
+import axiosInstance from "../axiosConfig";
 
 const Car = () => {
+    const [cars, setCars] = useState([]);
+    const [newCar, setNewCar] = useState({});
     const [filterText, setFilterText] = useState("");
+    const [selectedCar, setSelectedCar] = useState(null);
+
+    useEffect(() => {
+        fetchCars();
+    }, []);
+
+    const fetchCars = async () => {
+        try {
+            const response = await axiosInstance.get("/car");
+            setCars(response.data);
+        } catch (error) {
+            console.error("Error fetching cars:", error);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "Do you really want to delete this car?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, delete it!",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await axiosInstance.delete(`/car/${id}`);
+                    Swal.fire("Deleted!", "The car has been deleted.", "success");
+                    // Update the state to remove the deleted user
+                    setCars((prevCars) => prevCars.filter((car) => car._id !== id));
+                } catch (error) {
+                    console.error("Error deleting car:", error);
+                }
+            }
+        });
+    };
+
+    const handleEdit = (car) => {
+        setSelectedCar(car);
+        const modal = new window.bootstrap.Modal(document.getElementById("editCarModal"));
+        modal.show();
+    };
+
+    const handleUpdate = async () => {
+        try {
+            const response = await axiosInstance.put(`/car/${selectedCar._id}`, selectedCar);
+            Swal.fire("Updated!", "The car has been updated successfully.", "success");
+
+            setCars((prevCar) =>
+                prevCar.map((car) =>
+                    car._id === selectedCar._id ? { ...response.data } : car
+                )
+            );
+
+            const modal = window.bootstrap.Modal.getInstance(document.getElementById("editCarModal"));
+            modal.hide();
+            fetchCars();
+        } catch (error) {
+            console.error("Error updating car:", error);
+        }
+    };
+
+    const handleAddCar = async () => {
+        try {
+            const response = await axiosInstance.post("/car/create", newCar);
+
+            if (response.status === 200) {
+                Swal.fire("Success!", "Car added successfully.", "success");
+
+                // Update the cars list to include the new car
+                setCars([...cars, { ...response.data }]);
+
+                // Reset the form fields
+                setNewCar({
+                    palette: "",
+                    type: "",
+                    manufacture: "",
+                    license: "",
+                    insurance: "comprehensive",
+                    ownership: "company",
+                });
+
+                // Close the modal
+                const modalElement = document.getElementById("addRowModal");
+                const modalInstance = window.bootstrap.Modal.getInstance(modalElement);
+                modalInstance.hide();
+            }
+        } catch (error) {
+            // Display SweetAlert error message
+            Swal.fire("Error!", "Failed to add car.", "error");
+            console.error("Error adding car:", error);
+        }
+    };
 
     const columns = [
         {
+            name: "Ownership",
+            selector: (row) => row.carOwnership,
+        },
+        {
             name: "Palette",
-            selector: (row) => row.palette,
+            selector: (row) => row.car_palette,
         },
         {
             name: "Type",
-            selector: (row) => row.type,
+            selector: (row) => row.car_type,
         },
         {
             name: "Manufacture Year",
-            selector: (row) => row.manufacture,
+            selector: (row) => row.manufactureYear,
             sortable: true,
         },
         {
             name: "License Exp",
-            selector: (row) => row.license,
+            selector: (row) => row.licenseExpiryDate,
             sortable: true,
         },
         {
             name: "Incurance Type",
-            selector: (row) => row.insurance,
+            selector: (row) => row.insuranceType,
             sortable: false,
-        },
-        {
-            name: "Ownership",
-            selector: (row) => row.ownership,
         },
         {
             name: "Action",
@@ -41,6 +138,7 @@ const Car = () => {
                         type="button"
                         className="btn btn-link btn-primary btn-lg"
                         title="Edit Task"
+                        onClick={() => handleEdit(row)}
                     >
                         <i className="fa fa-edit"></i>
                     </button>
@@ -48,7 +146,7 @@ const Car = () => {
                         type="button"
                         className="btn btn-link btn-danger"
                         title="Remove"
-                        onClick={() => handleDelete(row.id)}
+                        onClick={() => handleDelete(row._id)}
                     >
                         <i className="fa fa-times"></i>
                     </button>
@@ -66,38 +164,15 @@ const Car = () => {
         },
     };
 
-    // Sample data
-    const data = [
-        { id: 1, palette: "3431101", type: "System Architect", manufacture: "2017", license: "2027", insurance: "partial", ownership: "company" },
-        { id: 2, palette: "123456", type: "Accountant", manufacture: "2020", license: "2027", insurance: "partial", ownership: "company" },
-    ];
-
-    const filteredData = data.filter(
-        (item) =>
-            item.palette.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.type.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.manufacture.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.license.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.insurance.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.ownership.toLowerCase().includes(filterText.toLowerCase())
+    const filteredCars = cars.filter(
+        (car) =>
+            car.car_palette?.toLowerCase().includes(filterText.toLowerCase()) ||
+            car.car_type?.toLowerCase().includes(filterText.toLowerCase()) ||
+            car.manufactureYear?.toLowerCase().includes(filterText.toLowerCase()) ||
+            car.licenseExpiryDate?.toLowerCase().includes(filterText.toLowerCase()) ||
+            car.insuranceType?.toLowerCase().includes(filterText.toLowerCase()) ||
+            car.carOwnership?.toLowerCase().includes(filterText.toLowerCase())
     );
-
-    const handleDelete = (id) => {
-        Swal.fire({
-            title: "Are you sure?",
-            text: "Do you really want to delete this item?",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: "Yes, delete it!",
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire("Deleted!", "Your item has been deleted.", "success");
-                // Add the delete logic here
-            }
-        });
-    };
 
     return (
         <div className="container" style={{ marginTop: "80px" }}>
@@ -125,7 +200,7 @@ const Car = () => {
                             </div>
                         </div>
                         <div className="card-body">
-                            {/* Modal Content */}
+                            {/*Add New Car Modal Content */}
                             <div
                                 className="modal fade"
                                 id="addRowModal"
@@ -159,10 +234,13 @@ const Car = () => {
                                                         <div className="form-group form-group-default">
                                                             <label>Palette</label>
                                                             <input
-                                                                id="addPalette"
                                                                 type="text"
                                                                 className="form-control"
                                                                 placeholder="Enter palette"
+                                                                value={newCar.palette}
+                                                                onChange={(e) =>
+                                                                    setNewCar({ ...newCar, car_palette: e.target.value })
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -170,10 +248,13 @@ const Car = () => {
                                                         <div className="form-group form-group-default">
                                                             <label>Type</label>
                                                             <input
-                                                                id="addType"
                                                                 type="text"
                                                                 className="form-control"
                                                                 placeholder="Enter type"
+                                                                value={newCar.type}
+                                                                onChange={(e) =>
+                                                                    setNewCar({ ...newCar, car_type: e.target.value })
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -181,10 +262,13 @@ const Car = () => {
                                                         <div className="form-group form-group-default">
                                                             <label>Manufacture Year</label>
                                                             <input
-                                                                id="addManufacture"
                                                                 type="text"
                                                                 className="form-control"
                                                                 placeholder="Enter manufacture year"
+                                                                value={newCar.manufacture}
+                                                                onChange={(e) =>
+                                                                    setNewCar({ ...newCar, manufactureYear: e.target.value })
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -192,35 +276,44 @@ const Car = () => {
                                                         <div className="form-group form-group-default">
                                                             <label>License Exp</label>
                                                             <input
-                                                                id="addLicense"
                                                                 type="text"
                                                                 className="form-control"
                                                                 placeholder="Enter license expiration"
+                                                                value={newCar.license}
+                                                                onChange={(e) =>
+                                                                    setNewCar({ ...newCar, licenseExpiryDate: e.target.value })
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
                                                     <div className="col-sm-12">
-                                                        <div class="form-group form-group-default">
+                                                        <div className="form-group form-group-default">
                                                             <label>Insurance Type</label>
                                                             <select
-                                                                class="form-select"
-                                                                id="formGroupDefaultSelect"
+                                                                className="form-select"
+                                                                value={newCar.insurance}
+                                                                onChange={(e) =>
+                                                                    setNewCar({ ...newCar, insuranceType: e.target.value })
+                                                                }
                                                             >
-                                                                <option value="comprehensive"> Comprehensive</option>
-                                                                <option value="thirdPartyLiability"> Third Party Liability</option>
-                                                                <option value="partial"> Partial</option>
+                                                                <option value="comprehensive">Comprehensive</option>
+                                                                <option value="thirdPartyLiability">Third Party Liability</option>
+                                                                <option value="partial">Partial</option>
                                                             </select>
                                                         </div>
                                                     </div>
                                                     <div className="col-sm-12">
-                                                        <div class="form-group form-group-default">
+                                                        <div className="form-group form-group-default">
                                                             <label>Car Ownership</label>
                                                             <select
-                                                                class="form-select"
-                                                                id="formGroupDefaultSelect"
+                                                                className="form-select"
+                                                                value={newCar.ownership}
+                                                                onChange={(e) =>
+                                                                    setNewCar({ ...newCar, carOwnership: e.target.value })
+                                                                }
                                                             >
-                                                                <option value="company"> Company</option>
-                                                                <option value="captain"> Captain</option>
+                                                                <option value="company">Company</option>
+                                                                <option value="captain">Captain</option>
                                                             </select>
                                                         </div>
                                                     </div>
@@ -230,8 +323,8 @@ const Car = () => {
                                         <div className="modal-footer border-0">
                                             <button
                                                 type="button"
-                                                id="addRowButton"
                                                 className="btn btn-primary"
+                                                onClick={handleAddCar}
                                             >
                                                 Add
                                             </button>
@@ -247,10 +340,124 @@ const Car = () => {
                                 </div>
                             </div>
 
+                            {/* Edit Car Modal */}
+                            <div
+                                className="modal fade"
+                                id="editCarModal"
+                                tabIndex="-1"
+                                role="dialog"
+                                aria-hidden="true"
+                            >
+                                <div className="modal-dialog" role="document">
+                                    <div className="modal-content">
+                                        <div className="modal-header border-0">
+                                            <h5 className="modal-title">Edit Car</h5>
+                                            <button
+                                                type="button"
+                                                className="btn-close"
+                                                data-bs-dismiss="modal"
+                                                aria-label="Close"
+                                            ></button>
+                                        </div>
+                                        <div className="modal-body">
+                                            <form>
+                                                <div className="form-group">
+                                                    <label>Ownership</label>
+                                                    <select
+                                                        className="form-select"
+                                                        value={selectedCar?.carOwnership || ""}
+                                                        onChange={(e) =>
+                                                            setSelectedCar({ ...selectedCar, carOwnership: e.target.value })
+                                                        }
+                                                    >
+                                                        <option value="">Select ownership</option>
+                                                        <option value="company">Company</option>
+                                                        <option value="captain">Captian</option>
+                                                    </select>
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Car Palette</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={selectedCar?.car_palette || ""}
+                                                        onChange={(e) =>
+                                                            setSelectedCar({ ...selectedCar, car_palette: e.target.value })
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Type</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={selectedCar?.car_type || ""}
+                                                        onChange={(e) =>
+                                                            setSelectedCar({ ...selectedCar, car_type: e.target.value })
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Manufacture Year</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={selectedCar?.manufactureYear || ""}
+                                                        onChange={(e) =>
+                                                            setSelectedCar({ ...selectedCar, manufactureYear: e.target.value })
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>licenseExpiryDate</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={selectedCar?.licenseExpiryDate || ""}
+                                                        onChange={(e) =>
+                                                            setSelectedCar({ ...selectedCar, licenseExpiryDate: e.target.value })
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Insurance Type</label>
+                                                    <select
+                                                        className="form-select"
+                                                        value={selectedCar?.insuranceType || ""}
+                                                        onChange={(e) =>
+                                                            setSelectedCar({ ...selectedCar, insuranceType: e.target.value })
+                                                        }
+                                                    >
+                                                        <option value="comprehensive">Comprehensive</option>
+                                                        <option value="thirdPartyLiability">Third Party Liability</option>
+                                                        <option value="partial">Partial</option>
+                                                    </select>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div className="modal-footer border-0">
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary"
+                                                onClick={handleUpdate}
+                                            >
+                                                Save Changes
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn btn-danger"
+                                                data-bs-dismiss="modal"
+                                            >
+                                                Close
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <DataTable
                                 columns={columns}
-                                data={filteredData}
+                                data={filteredCars}
                                 pagination
                                 responsive
                                 highlightOnHover
