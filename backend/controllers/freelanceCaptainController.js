@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const Captain = require('../models/freelanceCaptain');
+const FulltimeCaptin = require('../models/FulltimeCaptain');
 const Car = require('../models/Car');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
@@ -164,4 +165,20 @@ exports.deleteCaptain = asyncHandler(async (req, res) => {
     res.status(200).json({ message: 'Captain deleted successfully' });
 });
 
+// Get all delivery Cpatains
+exports.getDeliveryCaptains = asyncHandler(async (req, res) => {
+    try {
+        const freelanceCaptains = await Captain.find();
+        const fulltimeCaptains = await FulltimeCaptin.find({ role: "delivery" });
 
+        // Combine both arrays
+        const allDeliveryCaptains = [...freelanceCaptains, ...fulltimeCaptains];
+
+        res.status(200).json({
+            message: "Delivery captains retrieved successfully",
+            deliveryCaptains: allDeliveryCaptains,
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});

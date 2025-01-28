@@ -14,6 +14,9 @@ router.post('/signin', captainController.signin);
 // Get all captains route
 router.get('/', adminAuth, captainController.getAllCaptains);
 
+// Get all delivery captains
+router.get('/delivery', adminAuth, captainController.getDeliveryCaptains);
+
 // Get a single captain by ID
 router.get('/:id', captainController.getCaptain);
 
