@@ -1,85 +1,43 @@
 const asyncHandler = require('express-async-handler');
 const Inventory = require('../models/Inventory');
-const Item = require('../models/Item');
-const cloudinary = require('cloudinary').v2;
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
+const User = require('../models/User');
 
-// Cloudinary configuration
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-// Multer setup for file storage
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Temporary upload folder
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
-    }
-});
-
-const upload = multer({ storage: storage });
-
-// Create a new Inventory controller
-exports.createInventory = [
-    upload.single('image'),
-    asyncHandler(async (req, res) => {
-        try {
-            const { name, quantity, price, type, expireDate, weight, height, width, length, distance } = req.body;
-            const ownerId = req.user._id;
-
-            if (!['Breakable', 'Refrigerant', 'Normal'].includes(type)) {
-                return res.status(400).json({ error: 'Invalid type' });
-            }
-
-            let imageUrl = null;
-            if (req.file) {
-                const uploadResult = await cloudinary.uploader.upload(req.file.path);
-                imageUrl = uploadResult.secure_url;
-                fs.unlinkSync(req.file.path); // Delete local file after upload
-            }
-
-            const item = new Item({
-                name,
-                quantity,
-                price,
-                image: imageUrl,
-                type,
-                expireDate: expireDate || null,
-                weight,
-                height,
-                width,
-                length,
-                distance,
-                ownerId
-            });
-
-            const createdItem = await item.save();
-
-            // Create the inventory and associate the item ID
-            const inventory = new Inventory({
-                item_id: createdItem._id
-            })
-            await inventory.save();
-            res.status(201).json({ message: 'Inventory created successfully', data: createdItem });
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    }),
-];
-
-// Get all inventories and associated item controller
 exports.getAllInventories = asyncHandler(async (req, res) => {
     try {
-        const inventory = await Inventory.find().populate('item_id').exec();
-        res.status(200).json({ data: inventory });
+        // Fetch all inventories and populate the items
+        const inventories = await Inventory.find()
+            .populate('items')
+            .lean(); // Convert documents to plain JavaScript objects
+
+        // If no inventories are found
+        if (!inventories || inventories.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No inventories found',
+            });
+        }
+
+        // Map through inventories and attach user info
+        const inventoriesWithUsers = await Promise.all(
+            inventories.map(async (inventory) => {
+                // Find the user associated with this inventory
+                const user = await User.findOne({ inventory: inventory._id }).select('name');
+                return {
+                    ...inventory, // Include inventory data
+                    userName: user ? user.name : 'Unknown',
+                };
+            })
+        );
+
+        res.status(200).json(inventoriesWithUsers);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        // Logging the error for debugging
+        console.error('Error fetching inventories:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch inventories',
+            error: error.message,
+        });
     }
 });
 
@@ -87,7 +45,7 @@ exports.getAllInventories = asyncHandler(async (req, res) => {
 exports.getInventory = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
-        const inventory = await Inventory.findById(id).populate('item_id');
+        const inventory = await Inventory.findById(id).populate('items');
 
         if (!inventory) {
             return res.status(404).json({ error: 'Inventory not found' });
@@ -99,32 +57,72 @@ exports.getInventory = asyncHandler(async (req, res) => {
     }
 });
 
-// Delete inventory controller
+// Delete inventory and remove its reference from the user
 exports.deleteInventory = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
+        const inventory = await Inventory.findById(id);
+
+        if (!inventory) {
+            return res.status(404).json({
+                success: false,
+                message: 'Inventory not found',
+            });
+        }
+
+        // Remove the inventory ID from the user's document
+        const user = await User.findOneAndUpdate(
+            { inventory: id },
+            { $unset: { inventory: "" } },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found or inventory reference not found in user',
+            });
+        }
+
         await Inventory.findByIdAndDelete(id);
-        res.status(200).json({ message: 'Inventory deleted successfully' });
+
+        res.status(200).json({ message: 'Inventory and user reference deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Get user inventories\
-exports.getUserInventories = asyncHandler(async (req, res) => {
+
+// Get user inventory
+exports.getUserInventory = asyncHandler(async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Find all inventories where the associated item's ownerId matches the userId
-        const inventories = await Inventory.find()
-            .populate({
-                path: 'item_id',
-                match: { ownerId: userId },
-            })
-            .exec();
+        // Find the user and populate their inventory and its items
+        const user = await User.findById(userId).populate({
+            path: 'inventory',
+            populate: {
+                path: 'items', // Populate the items within the inventory
+            },
+        });
 
-        res.status(200).json({ data: inventories });
+        // Check if user or inventory exists
+        if (!user || !user.inventory) {
+            return res.status(404).json({
+                success: false,
+                message: 'User or inventory not found',
+            });
+        }
+
+        // Return the inventory along with the populated items
+        res.status(200).json(user.inventory);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error fetching user inventory:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch user inventory',
+            error: error.message,
+        });
     }
 });
+

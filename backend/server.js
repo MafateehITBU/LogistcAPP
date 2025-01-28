@@ -6,11 +6,12 @@ const cors = require('cors');
 
 const userRoutes = require('./routes/userRoutes');
 const carRoutes = require('./routes/carRoutes');
-const itemRoutes = require('./routes/itemRoutes');
+const inventoryItemRoutes = require('./routes/inventoryItemRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const fulltimeCaptainRoutes = require('./routes/fulltimeCaptainRoutes');
 const freelanceCaptainRoutes = require('./routes/freelanceCaptainRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
+const ticketRoutes = require('./routes/ticketRoutes');
 
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -29,10 +30,11 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/user', userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/car", carRoutes);
-app.use("/api/items", itemRoutes);
+app.use("/api/inventoryItems", inventoryItemRoutes);
 app.use("/api/fulltimeCaptain", fulltimeCaptainRoutes);
 app.use("/api/freelanceCaptain", freelanceCaptainRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/ticket', ticketRoutes);
 app.use(errorHandler);
 
 const port = process.env.PORT || 8081;

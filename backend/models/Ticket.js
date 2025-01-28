@@ -5,6 +5,10 @@ const ticketSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
     },
+    role: {
+        type: String,
+        enum: ['user', 'captain'],
+    },
     name: {
         type: String,
         required: true,
@@ -21,9 +25,13 @@ const ticketSchema = mongoose.Schema({
         type: String,
         required: false,
     },
+    reply: {
+        type: String,
+        default: null,
+    },
     status: {
         type: String,
-        enum: ['open', 'in_progress', 'resolved'],
+        enum: ['open', 'in_progress', 'closed'],
         default: 'open',
     }
 }, {timestamps: true});

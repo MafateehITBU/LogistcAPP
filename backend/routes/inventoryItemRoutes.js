@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const itemController = require('../controllers/itemController');
+const itemController = require('../controllers/inventoryItemController');
 const userAuth = require('../middlewares/userAuthMiddleware'); 
 const adminAuth = require('../middlewares/adminAuthMiddleware'); 
 
@@ -10,6 +10,7 @@ router.get('/', adminAuth ,itemController.getAllItems); // Get all items
 router.get('/user-items', userAuth, itemController.getUserItems);
 router.get('/:id', itemController.getItem); // Get single item
 router.put('/:id', userAuth, itemController.updateItem); // Update item
+router.put('/updateSdk/:id', adminAuth, itemController.updateSDK);
 router.delete('/:id', userAuth, itemController.deleteItem); // Delete item
 
 module.exports = router;
