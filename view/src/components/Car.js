@@ -106,6 +106,7 @@ const Car = () => {
         {
             name: "Ownership",
             selector: (row) => row.carOwnership,
+            sortable: true,
         },
         {
             name: "Palette",

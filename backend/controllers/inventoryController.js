@@ -70,18 +70,20 @@ exports.deleteInventory = asyncHandler(async (req, res) => {
             });
         }
 
-        // Remove the inventory ID from the user's document
-        const user = await User.findOneAndUpdate(
-            { inventory: id },
-            { $unset: { inventory: "" } },
-            { new: true }
-        );
-
-        if (!user) {
+        if (inventory.items.length > 0) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found or inventory reference not found in user',
+                message: 'Inventory has items and cannot be deleted',
             });
+        }
+
+        const user = await User.findOne({ inventory: id });
+        if (user) {
+            const updatedUser = await User.findOneAndUpdate(
+                { inventory: id },
+                { $unset: { inventory: "" } },
+                { new: true }
+            );
         }
 
         await Inventory.findByIdAndDelete(id);

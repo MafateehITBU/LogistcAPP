@@ -5,17 +5,21 @@ const Sidebar = () => {
     const location = useLocation();
     const isHome = location.pathname === "/";
     const isUser = location.pathname === "/users";
-    const isCaptain = location.pathname === "/captains";
+    const isPartner = location.pathname === "/partners";
+    const isNormal = location.pathname === "/normalUsers";
+    const isFulltimeCaptain = location.pathname === "/fulltimeCaptains";
+    const isFreelanceCaptain = location.pathname === "/freelanceCaptains";
     const isCars = location.pathname === "/cars";
     const isInventory = location.pathname === "/inventories";
     const isItems = location.pathname === "/items";
+    const isTicket = location.pathname === "/tickets";
 
     return (
         <div className="sidebar sidebar-style-2" data-background-color="dark">
             {/* Sidebar Logo */}
             <div className="sidebar-logo">
                 <div className="logo-header" data-background-color="dark">
-                    <a href="index.html" className="logo">
+                    <a href="/" className="logo">
                         <img
                             src="/img/kaiadmin/logo_light.svg"
                             alt="navbar brand"
@@ -55,18 +59,48 @@ const Sidebar = () => {
                             <h4 className="text-section">Tables</h4>
                         </li>
 
-                        <li className={`nav-item ${isUser ? "active" : ""}`}>
-                            <a href="/users">
+                        <li class={`${isPartner || isNormal ? "active" : ""} nav-item`}>
+                            <a data-bs-toggle="collapse" href="#users">
                                 <i className="fas fa-user"></i>
                                 <p>Users</p>
+                                <span class="caret"></span>
                             </a>
+                            <div class={`${isPartner || isNormal ? "show" : ""}collapse`} id="users">
+                                <ul class="nav nav-collapse">
+                                    <li class={`${isPartner ? "active" : ""}`}>
+                                        <a href="/partners">
+                                            <span class="sub-item">Partners</span>
+                                        </a>
+                                    </li>
+                                    <li class={`${isNormal ? "active" : ""}`}>
+                                        <a href="/normalUsers">
+                                            <span class="sub-item">Normal Users</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </li>
 
-                        <li className={`nav-item ${isCaptain ? "active" : ""}`}>
-                            <a href="/captains">
+                        <li class={`${isFulltimeCaptain || isFreelanceCaptain ? "active" : ""} nav-item  submenu`}>
+                            <a data-bs-toggle="collapse" href="#captanis">
                                 <i class="fa-solid fa-person"></i>
                                 <p>Captains</p>
+                                <span class="caret"></span>
                             </a>
+                            <div class={`${isFulltimeCaptain || isFreelanceCaptain ? "show" : ""}collapse `} id="captanis">
+                                <ul class="nav nav-collapse">
+                                    <li class={`${isFulltimeCaptain ? "active" : ""}`}>
+                                        <a href="/fulltimeCaptains">
+                                            <span class="sub-item">Fulltime Captains</span>
+                                        </a>
+                                    </li>
+                                    <li class={`${isFreelanceCaptain ? "active" : ""}`}>
+                                        <a href="/freelanceCaptains">
+                                            <span class="sub-item">Freelance Captains</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </li>
 
                         <li className={`nav-item ${isCars ? "active" : ""}`}>
@@ -76,17 +110,17 @@ const Sidebar = () => {
                             </a>
                         </li>
 
-                        <li className={`nav-item ${isItems ? "active" : ""}`}>
-                            <a href="/items">
-                                <i className="fas fa-user"></i>
-                                <p>Items</p>
-                            </a>
-                        </li>
-
                         <li className={`nav-item ${isInventory ? "active" : ""}`}>
                             <a href="/inventories">
                                 <i class="fa-solid fa-warehouse"></i>
                                 <p>Inventory</p>
+                            </a>
+                        </li>
+
+                        <li className={`nav-item ${isTicket ? "active" : ""}`}>
+                            <a href="/tickets">
+                                <i class="fa-solid fa-ticket"></i>
+                                <p>Ticket</p>
                             </a>
                         </li>
 
