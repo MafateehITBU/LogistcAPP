@@ -1,25 +1,86 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DataTable from "react-data-table-component";
 import Swal from "sweetalert2";
+import axiosInstance from "../axiosConfig";
 
 const Inventory = () => {
+    const [inventories, setInventories] = useState([]);
     const [filterText, setFilterText] = useState("");
+    const [selectedItems, setSelectedItems] = useState([]);
+    const [showModal, setShowModal] = useState(false);
+
+    useEffect(() => {
+        fetchInventories();
+    }, []);
+
+    // Fetch inventory data
+    const fetchInventories = async () => {
+        try {
+            const response = await axiosInstance.get("/inventory");
+            setInventories(response.data);
+        } catch (error) {
+            console.error("Error fetching inventory data:", error);
+            Swal.fire("Error", "Failed to fetch inventory data.", "error");
+        }
+    };
+
+    const handleDelete = (id) => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "Do you really want to delete this inventory?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, delete it!",
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await axiosInstance.delete(`/inventory/${id}`);
+                    Swal.fire("Deleted!", response.data.message, "success");
+                    // Update state by removing the deleted inventory
+                    setInventories((prevInventories) =>
+                        prevInventories.filter((inventory) => inventory._id !== id)
+                    );
+                } catch (error) {
+                    if (error.response) {
+                        Swal.fire("Error", error.response.data.message || "An error occurred", "error");
+                    } else {
+                        console.error("Error deleting the inventory:", error);
+                        Swal.fire("Error", "Failed to delete the inventory.", "error");
+                    }
+                }
+            }
+        });
+    };
+
+
+    const handleViewItems = (items) => {
+        setSelectedItems(items);
+        setShowModal(true);
+    };
 
     const columns = [
         {
-            name: "Name",
-            selector: (row) => row.name,
+            name: "User Name",
+            selector: (row) => row.userName,
             sortable: true,
         },
         {
-            name: "Position",
-            selector: (row) => row.position,
+            name: "No. of Items",
+            selector: (row) => row.items.length,
             sortable: true,
         },
         {
-            name: "Office",
-            selector: (row) => row.office,
-            sortable: true,
+            name: "See Items",
+            cell: (row) => (
+                <button
+                    className="btn btn-primary"
+                    onClick={() => handleViewItems(row.items)}
+                >
+                    View Items
+                </button>
+            ),
         },
         {
             name: "Action",
@@ -27,16 +88,9 @@ const Inventory = () => {
                 <div className="form-button-action">
                     <button
                         type="button"
-                        className="btn btn-link btn-primary btn-lg"
-                        title="Edit Task"
-                    >
-                        <i className="fa fa-edit"></i>
-                    </button>
-                    <button
-                        type="button"
                         className="btn btn-link btn-danger"
                         title="Remove"
-                        onClick={() => handleDelete(row.id)}
+                        onClick={() => handleDelete(row._id)}
                     >
                         <i className="fa fa-times"></i>
                     </button>
@@ -48,41 +102,15 @@ const Inventory = () => {
     const customStyles = {
         headCells: {
             style: {
-                fontWeight: "bold", 
+                fontWeight: "bold",
                 fontSize: "16px",
             },
         },
     };
 
-    // Sample data
-    const data = [
-        { id: 1, name: "Tiger Nixon", position: "System Architect", office: "Edinburgh" },
-        { id: 2, name: "Garrett Winters", position: "Accountant", office: "Tokyo" },
-    ];
-
-    const filteredData = data.filter(
-        (item) =>
-            item.name.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.position.toLowerCase().includes(filterText.toLowerCase()) ||
-            item.office.toLowerCase().includes(filterText.toLowerCase())
+    const filteredData = inventories.filter((inventory) =>
+        inventory.userName.toLowerCase().includes(filterText.toLowerCase())
     );
-
-    const handleDelete = (id) => {
-        Swal.fire({
-            title: "Are you sure?",
-            text: "Do you really want to delete this item?",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: "Yes, delete it!",
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire("Deleted!", "Your item has been deleted.", "success");
-                // Add the delete logic here
-            }
-        });
-    };
 
     return (
         <div className="container" style={{ marginTop: "80px" }}>
@@ -100,103 +128,9 @@ const Inventory = () => {
                                     value={filterText}
                                     onChange={(e) => setFilterText(e.target.value)}
                                 />
-                                <button
-                                    className="btn btn-primary btn-round"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#addRowModal"
-                                >
-                                    <i className="fa fa-plus"></i> Add Row
-                                </button>
                             </div>
                         </div>
                         <div className="card-body">
-                            {/* Modal Content */}
-                            <div
-                                className="modal fade"
-                                id="addRowModal"
-                                tabIndex="-1"
-                                role="dialog"
-                                aria-hidden="true"
-                            >
-                                <div className="modal-dialog" role="document">
-                                    <div className="modal-content">
-                                        <div className="modal-header border-0">
-                                            <h5 className="modal-title">
-                                                <span className="fw-mediumbold">New</span>
-                                                <span className="fw-light"> Row</span>
-                                            </h5>
-                                            <button
-                                                type="button"
-                                                className="close"
-                                                data-bs-dismiss="modal"
-                                                aria-label="Close"
-                                            >
-                                                <span aria-hidden="true">&times;</span>
-                                            </button>
-                                        </div>
-                                        <div className="modal-body">
-                                            <p className="small">
-                                                Create a new row using this form, make sure you
-                                                fill them all
-                                            </p>
-                                            <form>
-                                                <div className="row">
-                                                    <div className="col-sm-12">
-                                                        <div className="form-group form-group-default">
-                                                            <label>Name</label>
-                                                            <input
-                                                                id="addName"
-                                                                type="text"
-                                                                className="form-control"
-                                                                placeholder="Fill name"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-md-6 pe-0">
-                                                        <div className="form-group form-group-default">
-                                                            <label>Position</label>
-                                                            <input
-                                                                id="addPosition"
-                                                                type="text"
-                                                                className="form-control"
-                                                                placeholder="Fill position"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-md-6">
-                                                        <div className="form-group form-group-default">
-                                                            <label>Office</label>
-                                                            <input
-                                                                id="addOffice"
-                                                                type="text"
-                                                                className="form-control"
-                                                                placeholder="Fill office"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </form>
-                                        </div>
-                                        <div className="modal-footer border-0">
-                                            <button
-                                                type="button"
-                                                id="addRowButton"
-                                                className="btn btn-primary"
-                                            >
-                                                Add
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="btn btn-danger"
-                                                data-bs-dismiss="modal"
-                                            >
-                                                Close
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <DataTable
                                 columns={columns}
                                 data={filteredData}
@@ -210,6 +144,76 @@ const Inventory = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal */}
+            {showModal && (
+                <div
+                    className="modal fade show d-block"
+                    tabIndex="-1"
+                    role="dialog"
+                    style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+                >
+                    <div className="modal-dialog" role="document" style={{ maxWidth: "70%" }}>
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Items Details</h5>
+                                <button
+                                    type="button"
+                                    className="close"
+                                    onClick={() => setShowModal(false)}
+                                >
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th>Name</th>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                            <th>Weight</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedItems.map((item) => (
+                                            <tr key={item._id}>
+                                                <td>{item.image ? (
+                                                    <img
+                                                        src={item.image}
+                                                        alt="user profilePicture"
+                                                        style={{ width: "50px", height: "50px", borderRadius: "5px", cursor: "pointer" }}
+                                                    />
+                                                ): "no img attached"}</td>
+                                                <td>{item.name}</td>
+                                                <td>{item.quantity}</td>
+                                                <td>{item.price}</td>
+                                                <td>{item.weight}</td>
+                                                <td>{item.type}</td>
+                                                <td>{item.itemStatus === 'inStock'?
+                                                 (<div style={{ backgroundColor: "#28a745", padding: "10px", borderRadius: "5px", color:"#fff", textAlign: "center" }}>In Stock</div>):
+                                                 (<div style={{ backgroundColor: "red", padding: "10px", borderRadius: "5px", color:"#fff" }}>Out of Stock</div>)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowModal(false)}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -7,11 +7,13 @@ import UnAuth from './components/UnAuth';
 import Sidebar from "./components/Sidebar";
 import Header from './components/Header';
 import Home from './components/Home';
-import User from './components/User';
-import Captain from './components/Captain';
+import Partner from './components/Partner';
+import Normal from './components/Normal';
+import FulltimeCaptain from './components/FulltimeCaptain';
+import FreelanceCaptain from './components/FreelanceCaptain';
 import Car from './components/Car';
-import Item from './components/Item';
 import Inventory from './components/Inventory';
+import Ticket from './components/Ticket';
 import Footer from "./components/Footer";
 import ProtectedRoute from './components/ProtectedRoutes';
 
@@ -30,11 +32,13 @@ function AppContent() {
             <div className="main-area" style={{ minHeight: "80vh" }}>
               <Routes>
                 <Route path="/" element={<ProtectedRoute component={Home} roleRequired="admin" />} />
-                <Route path="/users" element={<ProtectedRoute component={User} roleRequired="admin" />} />
-                <Route path="/captains" element={<ProtectedRoute component={Captain} roleRequired="admin" />} />
+                <Route path="/partners" element={<ProtectedRoute component={Partner} roleRequired="admin" />} />
+                <Route path="/normalUsers" element={<ProtectedRoute component={Normal} roleRequired="admin" />} />
+                <Route path="/FulltimeCaptains" element={<ProtectedRoute component={FulltimeCaptain} roleRequired="admin" />} />
+                <Route path="/FreelanceCaptains" element={<ProtectedRoute component={FreelanceCaptain} roleRequired="admin" />} />
                 <Route path="/cars" element={<ProtectedRoute component={Car} roleRequired="admin"/>} />
-                <Route path="/items" element={<ProtectedRoute component={Item} roleRequired="admin" />} />
                 <Route path="/inventories" element={<ProtectedRoute component={Inventory} roleRequired="admin" />} />
+                <Route path="/tickets" element={<ProtectedRoute component={Ticket} roleRequired="admin" />} />
               </Routes>
             </div>
             <Footer />
