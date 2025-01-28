@@ -12,7 +12,8 @@ const fulltimeCaptainRoutes = require('./routes/fulltimeCaptainRoutes');
 const freelanceCaptainRoutes = require('./routes/freelanceCaptainRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
-const userItemsRoutes = require('./routes/userItemsRoutes')
+const userItemsRoutes = require('./routes/userItemsRoutes');
+const orderRoutes = require('./routes/orderRoutes')
 const errorHandler = require('./middlewares/errorHandler');
 
 
@@ -36,6 +37,7 @@ app.use("/api/fulltimeCaptain", fulltimeCaptainRoutes);
 app.use("/api/freelanceCaptain", freelanceCaptainRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/ticket', ticketRoutes);
+app.use('/api/order', orderRoutes);
 app.use(errorHandler);
 
 const port = process.env.PORT || 8081;
