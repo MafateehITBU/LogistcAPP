@@ -34,6 +34,8 @@ exports.signup = [
         try {
             const { name, email, password, phone, age, gender, role } = req.body;
 
+            const lowercaseEmail = email.toLowerCase();
+
             // Validate gender
             if (!['male', 'female'].includes(gender)) {
                 return res.status(400).json({ error: 'Gender must be male or female' });
@@ -60,7 +62,7 @@ exports.signup = [
 
                 user = new User({
                     name,
-                    email,
+                    email: lowercaseEmail,
                     password: hashedPassword,
                     phone,
                     age,
@@ -99,7 +101,8 @@ exports.signup = [
 exports.signin = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        const lowercaseEmail = email.toLowerCase();
+        const user = await User.findOne({ email: lowercaseEmail });
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const isMatch = await bcrypt.compare(password, user.password);
