@@ -53,34 +53,6 @@ const validateItems = async (items, user) => {
     return totalPrice;
 };
 
-// Helper: Update inventory or user item quantities
-const updateItemQuantities = async (items) => {
-    for (const item of items) {
-        const { itemId, quantity, source } = item;
-
-        if (source === 'InventoryItem') {
-            const inventoryItem = await InventoryItem.findById(itemId);
-            if (inventoryItem) {
-                // Check sufficient quantity before decrement
-                if (inventoryItem.quantity < quantity) {
-                    throw new Error(`Insufficient quantity for item ${inventoryItem.name}`);
-                }
-                inventoryItem.quantity -= quantity; // Deduct only once
-                await inventoryItem.save();
-            }
-        } else if (source === 'UserItems') {
-            const userItem = await UserItems.findById(itemId);
-            if (userItem) {
-                // Check sufficient quantity before decrement
-                if (userItem.quantity < quantity) {
-                    throw new Error(`Insufficient quantity for item ${userItem.name}`);
-                }
-                userItem.quantity -= quantity; // Deduct only once
-                await userItem.save();
-            }
-        }
-    }
-};
 
 
 
@@ -147,12 +119,10 @@ const getUserOrders = asyncHandler(async (req, res) => {
 // Controller: Get All Orders (Admin)
 const getAllOrders = asyncHandler(async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied. Admins only.' });
-        }
-
         // Fetch all orders
-        const orders = await Order.find().populate('items.item').populate('user', 'name email');
+        const orders = await Order.find()
+            .populate('items.item') // Populate the item details
+            .populate('user', 'name email'); // Populate the user details with name and email
 
         res.status(200).json({ orders });
     } catch (error) {
@@ -160,31 +130,138 @@ const getAllOrders = asyncHandler(async (req, res) => {
     }
 });
 
-// Controller: Update Order Status
-const updateOrderStatus = asyncHandler(async (req, res) => {
-    try {
-        const { orderId, status } = req.body;
 
-        // Validate order
-        const order = await Order.findById(orderId);
+
+
+const updateOrderDetails = asyncHandler(async (req, res) => {
+    try {
+        const { id: orderId } = req.params; // Get the order ID from the request parameters
+        const updateFields = { ...req.body }; // Copy the request body for updates
+
+        // Restricted fields: Users are not allowed to update these
+        delete updateFields.procurementOfficer;
+        delete updateFields.deliveryCaptain;
+
+        // Find the order
+        const order = await Order.findById(orderId).populate('items.item');
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        // Update order status
-        order.status = status;
+        // Ensure the user owns this order
+        if (String(order.user) !== String(req.user._id)) {
+            return res.status(403).json({ message: 'You are not authorized to update this order' });
+        }
+
+        // Handle quantity updates
+        if (updateFields.items) {
+            // Track the new items and updated quantities
+            const updatedItems = updateFields.items;
+
+            // Loop through the existing items in the order
+            for (const existingItem of order.items) {
+                const updatedItem = updatedItems.find(
+                    (item) => String(item.item) === String(existingItem.item._id) && item.source === existingItem.source
+                );
+
+                if (updatedItem) {
+                    // Calculate quantity difference
+                    const quantityDifference = updatedItem.quantity - existingItem.quantity;
+
+                    // Adjust inventory based on the difference
+                    if (updatedItem.source === 'InventoryItem') {
+                        const inventoryItem = await InventoryItem.findById(existingItem.item._id);
+                        if (!inventoryItem) throw new Error('Inventory item not found');
+                        if (inventoryItem.quantity < quantityDifference && quantityDifference > 0) {
+                            throw new Error('Not enough inventory quantity');
+                        }
+                        inventoryItem.quantity -= quantityDifference; // Update inventory quantity
+                        await inventoryItem.save();
+                    } else if (updatedItem.source === 'UserItems') {
+                        const userItem = await UserItems.findById(existingItem.item._id);
+                        if (!userItem) throw new Error('User item not found');
+                        if (userItem.quantity < quantityDifference && quantityDifference > 0) {
+                            throw new Error('Not enough user item quantity');
+                        }
+                        userItem.quantity -= quantityDifference; // Update user item quantity
+                        await userItem.save();
+                    }
+
+                    // Update the item's quantity in the order
+                    existingItem.quantity = updatedItem.quantity;
+                } else {
+                    // Item removed from the order, restore inventory
+                    if (existingItem.source === 'InventoryItem') {
+                        const inventoryItem = await InventoryItem.findById(existingItem.item._id);
+                        if (inventoryItem) {
+                            inventoryItem.quantity += existingItem.quantity; // Restore inventory quantity
+                            await inventoryItem.save();
+                        }
+                    } else if (existingItem.source === 'UserItems') {
+                        const userItem = await UserItems.findById(existingItem.item._id);
+                        if (userItem) {
+                            userItem.quantity += existingItem.quantity; // Restore user item quantity
+                            await userItem.save();
+                        }
+                    }
+                }
+            }
+
+            // Add new items to the order
+            for (const updatedItem of updatedItems) {
+                const existingItem = order.items.find(
+                    (item) => String(item.item._id) === String(updatedItem.item) && item.source === updatedItem.source
+                );
+
+                if (!existingItem) {
+                    // New item added
+                    if (updatedItem.source === 'InventoryItem') {
+                        const inventoryItem = await InventoryItem.findById(updatedItem.item);
+                        if (!inventoryItem) throw new Error('Inventory item not found');
+                        if (inventoryItem.quantity < updatedItem.quantity) {
+                            throw new Error('Not enough inventory quantity');
+                        }
+                        inventoryItem.quantity -= updatedItem.quantity; // Deduct inventory quantity
+                        await inventoryItem.save();
+                    } else if (updatedItem.source === 'UserItems') {
+                        const userItem = await UserItems.findById(updatedItem.item);
+                        if (!userItem) throw new Error('User item not found');
+                        if (userItem.quantity < updatedItem.quantity) {
+                            throw new Error('Not enough user item quantity');
+                        }
+                        userItem.quantity -= updatedItem.quantity; // Deduct user item quantity
+                        await userItem.save();
+                    }
+
+                    // Add the new item to the order
+                    order.items.push(updatedItem);
+                }
+            }
+        }
+
+        // Update other fields (excluding items)
+        for (const key in updateFields) {
+            if (key !== 'items' && updateFields.hasOwnProperty(key)) {
+                order[key] = updateFields[key];
+            }
+        }
+
+        // Save the updated order
         await order.save();
 
-        res.status(200).json({ message: 'Order status updated successfully', order });
+        res.status(200).json({ message: 'Order updated successfully', order });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
 });
+
+
+
 
 // Export all controller functions
 module.exports = {
     createOrder,
     getUserOrders,
     getAllOrders,
-    updateOrderStatus,
+    updateOrderDetails,
 };
