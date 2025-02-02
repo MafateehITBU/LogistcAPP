@@ -4,15 +4,14 @@ import { useLocation } from "react-router-dom";
 const Sidebar = () => {
     const location = useLocation();
     const isHome = location.pathname === "/";
-    const isUser = location.pathname === "/users";
     const isPartner = location.pathname === "/partners";
     const isNormal = location.pathname === "/normalUsers";
     const isFulltimeCaptain = location.pathname === "/fulltimeCaptains";
     const isFreelanceCaptain = location.pathname === "/freelanceCaptains";
     const isCars = location.pathname === "/cars";
     const isInventory = location.pathname === "/inventories";
-    const isItems = location.pathname === "/items";
     const isTicket = location.pathname === "/tickets";
+    const isReward = location.pathname === "/rewards";
 
     return (
         <div className="sidebar sidebar-style-2" data-background-color="dark">
@@ -121,6 +120,13 @@ const Sidebar = () => {
                             <a href="/tickets">
                                 <i class="fa-solid fa-ticket"></i>
                                 <p>Ticket</p>
+                            </a>
+                        </li>
+
+                        <li className={`nav-item ${isReward ? "active" : ""}`}>
+                            <a href="/rewards">
+                                <i class="fa-solid fa-ticket"></i>
+                                <p>Rewards</p>
                             </a>
                         </li>
 
