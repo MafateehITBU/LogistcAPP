@@ -19,7 +19,7 @@ const inventoryItemSchema = new mongoose.Schema({
     area: { type: Number }, // Auto-calculated: width * length
     distance: { type: Number, required: true }, // Distance in KM
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Reference to User
-    SDK: {
+    SKU: {
         type: String,
         default: ' ',
     },
