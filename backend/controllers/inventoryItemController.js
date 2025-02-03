@@ -24,13 +24,14 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Add new item
+// Add new item
 exports.addItem = [
   upload.single('image'),
   async (req, res) => {
     try {
       const { name, quantity, price, type, expireDate, weight, height, width, length, distance } = req.body;
       const ownerId = req.user._id; // Assuming user authentication middleware attaches user to req
-      const inventoryId = req.user.inventory; // Assuming user's inventory ID is stored in req.user.inventory
+      let inventoryId = req.user.inventory; // Assuming user's inventory ID is stored in req.user.inventory
 
       // Validate the type field
       if (!['Breakable', 'Refrigerant', 'Normal'].includes(type)) {
@@ -42,6 +43,15 @@ exports.addItem = [
         const uploadResult = await cloudinary.uploader.upload(req.file.path);
         imageUrl = uploadResult.secure_url;
         fs.unlinkSync(req.file.path); // Delete local file after upload
+      }
+
+      // Check if the user has an inventory, if not, create a new one
+      let inventory = await Inventory.findById(inventoryId);
+      if (!inventory) {
+        inventory = new Inventory({ items: [] });
+        await inventory.save();
+        req.user.inventory = inventory._id;
+        await req.user.save();
       }
 
       // Create a new Item
@@ -63,11 +73,6 @@ exports.addItem = [
       await item.save(); // Save the item to the database
 
       // Add the new item ID to the inventory
-      const inventory = await Inventory.findById(inventoryId);
-      if (!inventory) {
-        return res.status(404).json({ error: 'Inventory not found' });
-      }
-
       inventory.items.push(item._id);
       await inventory.save();
 
