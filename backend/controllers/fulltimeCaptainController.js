@@ -33,6 +33,7 @@ exports.signup = [
     asyncHandler(async (req, res) => {
         try {
             const { name, email, password, phone, role, shift } = req.body;
+            const lowercaseEmail = email.toLowerCase();
 
             // Check if a file is uploaded
             let profilePictureUrl = null;
@@ -47,7 +48,7 @@ exports.signup = [
 
             const captain = new Captain({
                 name,
-                email,
+                email: lowercaseEmail,
                 password,
                 phone,
                 role,
@@ -70,7 +71,8 @@ exports.signup = [
 // Sign-in controller
 exports.signin = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const captain = await Captain.findOne({ email });
+    const lowercaseEmail = email.toLowerCase();
+    const captain = await Captain.findOne({ email: lowercaseEmail });
     if (!captain) return res.status(404).json({ error: 'Captain not found' });
 
     const isMatch = await bcrypt.compare(password, captain.password);

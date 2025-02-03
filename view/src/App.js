@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 import Login from './components/Login';
@@ -31,12 +31,12 @@ function AppContent() {
             <Header />
             <div className="main-area" style={{ minHeight: "80vh" }}>
               <Routes>
-                <Route path="/" element={<ProtectedRoute component={Home} roleRequired="admin" />} />
+                <Route path="/" element={<Navigate to="/login" replace />} /> {/* Redirect to /login */}
                 <Route path="/partners" element={<ProtectedRoute component={Partner} roleRequired="admin" />} />
                 <Route path="/normalUsers" element={<ProtectedRoute component={Normal} roleRequired="admin" />} />
                 <Route path="/FulltimeCaptains" element={<ProtectedRoute component={FulltimeCaptain} roleRequired="admin" />} />
                 <Route path="/FreelanceCaptains" element={<ProtectedRoute component={FreelanceCaptain} roleRequired="admin" />} />
-                <Route path="/cars" element={<ProtectedRoute component={Car} roleRequired="admin"/>} />
+                <Route path="/cars" element={<ProtectedRoute component={Car} roleRequired="admin" />} />
                 <Route path="/inventories" element={<ProtectedRoute component={Inventory} roleRequired="admin" />} />
                 <Route path="/tickets" element={<ProtectedRoute component={Ticket} roleRequired="admin" />} />
               </Routes>
@@ -48,6 +48,7 @@ function AppContent() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path='/unAuth' element={<UnAuth />} />
+          <Route path="/" element={<Navigate to="/login" replace />} /> {/* Redirect for non-auth layout */}
         </Routes>
       )}
     </>

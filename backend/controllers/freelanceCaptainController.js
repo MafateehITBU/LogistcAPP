@@ -42,6 +42,7 @@ exports.signup = [
     asyncHandler(async (req, res) => {
         try {
             const { name, email, password, phone, shift, car_palette, car_type, manufactureYear, licenseExpiryDate, insuranceType, carOwnership } = req.body;
+            const lowercaseEmail = email.toLowerCase();
 
             // Upload files to Cloudinary
             const uploadFile = async (file) => {
@@ -76,7 +77,7 @@ exports.signup = [
             // Create the captain and associate the car ID
             const captain = new Captain({
                 name,
-                email,
+                email: lowercaseEmail,
                 password,
                 phone,
                 shift,
@@ -105,7 +106,8 @@ exports.signup = [
 // Sign-in controller
 exports.signin = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const captain = await Captain.findOne({ email });
+    const lowercaseEmail = email.toLowerCase();
+    const captain = await Captain.findOne({ email: lowercaseEmail });
     if (!captain) return res.status(404).json({ error: 'Captain not found' });
 
     const isMatch = await bcrypt.compare(password, captain.password);
