@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post('/', userAuth, createOrder); // Create order
 router.get('/', userAuth, getUserOrders); // Get orders for the authenticated user
-router.get('/all', userAuth, getAllOrders); // Admin: Get all orders
+router.get('/all', adminAuth, getAllOrders); // Admin: Get all orders
 router.put('/status', adminAuth, updateOrderStatus); // Update order status
 
 module.exports = router;

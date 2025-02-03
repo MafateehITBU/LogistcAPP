@@ -10,6 +10,7 @@ const Sidebar = () => {
     const isFreelanceCaptain = location.pathname === "/freelanceCaptains";
     const isCars = location.pathname === "/cars";
     const isInventory = location.pathname === "/inventories";
+    const isOrder = location.pathname === "/orders";
     const isTicket = location.pathname === "/tickets";
     const isReward = location.pathname === "/rewards";
 
@@ -113,6 +114,13 @@ const Sidebar = () => {
                             <a href="/inventories">
                                 <i class="fa-solid fa-warehouse"></i>
                                 <p>Inventory</p>
+                            </a>
+                        </li>
+
+                        <li className={`nav-item ${isOrder ? "active" : ""}`}>
+                            <a href="/orders">
+                                <i class="fa-solid fa-warehouse"></i>
+                                <p>Orders</p>
                             </a>
                         </li>
 

@@ -123,18 +123,21 @@ exports.redeemCoupon = async (req, res) => {
             return res.status(400).json({ message: "You have already redeemed this coupon the maximum number of times" });
         }
 
-        // Redeem the coupon
-        coupon.usedCount += 1;
-        coupon.usersRedeemed.push(userId);
+        // Check if today's date is less than the expiry date
+        const today = new Date();
+        const expiryDate = new Date(coupon.expiryDate);
 
-        // If max usage is reached, deactivate the coupon
-        if (coupon.usedCount >= coupon.maxUsage) {
+        if (today > expiryDate) {
             coupon.isActive = false;
+            return res.status(400).json({ message: "The Coupon has expired"});
         }
 
         // Deduct points from user
         user.points -= coupon.minPointsRequired;
 
+        // Redeem the coupon
+        coupon.usedCount += 1;
+        coupon.usersRedeemed.push(userId);
         await coupon.save();
         await user.save();
 

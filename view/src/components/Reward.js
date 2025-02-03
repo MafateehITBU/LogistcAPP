@@ -173,7 +173,7 @@ const Reward = () => {
                     <div className="card">
                         <div className="card-header">
                             <div className="d-flex align-items-center justify-content-between">
-                                <h4 className="card-title">Car Details</h4>
+                                <h4 className="card-title">Reward Details</h4>
                                 <input
                                     type="text"
                                     className="form-control mx-3"

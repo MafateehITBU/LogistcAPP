@@ -135,6 +135,15 @@ exports.redeemReward = async (req, res) => {
             return res.status(400).json({ message: "You have already redeemed this reward the maximum number of times" });
         }
 
+        // Check if today's date is less than the expiry date
+        const today = new Date();
+        const expiryDate = new Date(coupon.expiryDate);
+
+        if (today > expiryDate) {
+            coupon.isActive = false;
+            return res.status(400).json({ message: "The Coupon has expired"});
+        }
+
         // Deduct points from user
         user.points -= reward.pointsRequired;
 

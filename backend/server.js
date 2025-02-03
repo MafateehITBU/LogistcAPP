@@ -14,6 +14,7 @@ const inventoryRoutes = require('./routes/inventoryRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const rewardRoutes = require('./routes/rewardRoutes');
 const couponRoutes = require('./routes/couponRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 const errorHandler = require('./middlewares/errorHandler');
 
 
@@ -38,6 +39,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/ticket', ticketRoutes);
 app.use('/api/reward', rewardRoutes);
 app.use('/api/coupon', couponRoutes);
+app.use('/api/order', orderRoutes);
 app.use(errorHandler);
 
 const port = process.env.PORT || 8081;

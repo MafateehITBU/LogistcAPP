@@ -15,6 +15,7 @@ import Car from './components/Car';
 import Inventory from './components/Inventory';
 import Ticket from './components/Ticket';
 import Reward from './components/Reward';
+import Order from './components/Order';
 import Footer from "./components/Footer";
 import ProtectedRoute from './components/ProtectedRoutes';
 
@@ -39,6 +40,7 @@ function AppContent() {
                 <Route path="/FreelanceCaptains" element={<ProtectedRoute component={FreelanceCaptain} roleRequired="admin" />} />
                 <Route path="/cars" element={<ProtectedRoute component={Car} roleRequired="admin"/>} />
                 <Route path="/inventories" element={<ProtectedRoute component={Inventory} roleRequired="admin" />} />
+                <Route path="/orders" element={<ProtectedRoute component={Order} roleRequired="admin" />} />
                 <Route path="/tickets" element={<ProtectedRoute component={Ticket} roleRequired="admin" />} />
                 <Route path="/rewards" element={<ProtectedRoute component={Reward} roleRequired="admin" />} />
               </Routes>
