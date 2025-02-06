@@ -79,7 +79,7 @@ const Order = () => {
         {
             name: "User Name",
             selector: (row) => row.user.name,
-            sortable: true,
+            sortable: false,
         },
         {
             name: "City",

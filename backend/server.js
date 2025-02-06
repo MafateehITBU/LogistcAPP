@@ -15,7 +15,9 @@ const ticketRoutes = require('./routes/ticketRoutes');
 const rewardRoutes = require('./routes/rewardRoutes');
 const couponRoutes = require('./routes/couponRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const userItemsRoutes = require('./routes/userItemsRoutes')
 const errorHandler = require('./middlewares/errorHandler');
+
 
 
 const app = express();
@@ -36,6 +38,7 @@ app.use("/api/inventoryItems", inventoryItemRoutes);
 app.use("/api/fulltimeCaptain", fulltimeCaptainRoutes);
 app.use("/api/freelanceCaptain", freelanceCaptainRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/userItems', userItemsRoutes);
 app.use('/api/ticket', ticketRoutes);
 app.use('/api/reward', rewardRoutes);
 app.use('/api/coupon', couponRoutes);
