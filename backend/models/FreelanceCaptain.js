@@ -79,4 +79,4 @@ freelanceCaptainSchema.pre('save', async function (next) {
     }
 });
 
-module.exports = mongoose.model('freelanceCaptain', freelanceCaptainSchema);
+module.exports = mongoose.models.FreelanceCaptain || mongoose.model('FreelanceCaptain', freelanceCaptainSchema);

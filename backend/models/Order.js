@@ -64,40 +64,96 @@ const orderSchema = new mongoose.Schema({
     }, // Only applicable if the status is "Refused"
     procurementOfficer: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: 'FulltimeCaptain' 
-    }, // Assigned to a procurement staff member
+        ref: 'FulltimeCaptain',
+        default: null
+    },
     deliveryCaptain: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: 'FulltimeCaptain' 
-    } // Assigned to a delivery staff member
+        refPath: 'deliveryCaptainModel',
+        default: null
+    },
+    deliveryCaptainModel: {
+        type: String,
+        enum: ['FulltimeCaptain', 'FreelanceCaptain'],
+        default: null
+    }
+    
 }, { timestamps: true });
 
-// Pre-save middleware to calculate totalPrice and update inventory quantities
 orderSchema.pre('save', async function (next) {
     try {
         let total = 0;
-        for (const item of this.items) {
-            if (item.source === 'InventoryItem') {
-                const inventoryItem = await InventoryItem.findById(item.item);
-                if (!inventoryItem) throw new Error('Inventory item not found');
-                if (inventoryItem.quantity < item.quantity) throw new Error('Not enough inventory quantity');
-                inventoryItem.quantity -= item.quantity; // Decrease inventory quantity
-                await inventoryItem.save();
-                total += inventoryItem.price * item.quantity;
-            } else if (item.source === 'UserItems') {
-                const userItem = await UserItems.findById(item.item);
-                if (!userItem) throw new Error('User item not found');
-                if (userItem.quantity < item.quantity) throw new Error('Not enough user item quantity');
-                userItem.quantity -= item.quantity; // Decrease user item quantity
-                await userItem.save();
-                total += userItem.price * item.quantity;
+
+        // Check if the document is new
+        if (this.isNew) {
+            // New order: Deduct quantities and calculate total
+            for (const item of this.items) {
+                if (item.source === 'InventoryItem') {
+                    const inventoryItem = await InventoryItem.findById(item.item);
+                    if (!inventoryItem) throw new Error('Inventory item not found');
+                    if (inventoryItem.quantity < item.quantity) throw new Error('Not enough inventory quantity');
+                    inventoryItem.quantity -= item.quantity;
+                    await inventoryItem.save();
+                    total += inventoryItem.price * item.quantity;
+                } else if (item.source === 'UserItems') {
+                    const userItem = await UserItems.findById(item.item);
+                    if (!userItem) throw new Error('User item not found');
+                    if (userItem.quantity < item.quantity) throw new Error('Not enough user item quantity');
+                    userItem.quantity -= item.quantity;
+                    await userItem.save();
+                    total += userItem.price * item.quantity;
+                }
             }
+        } else if (this.isModified('items')) {
+            // Updating existing order: Revert old quantities and apply new ones
+            const existingOrder = await mongoose.model('Order').findById(this._id).lean();
+
+            // Revert old quantities
+            for (const oldItem of existingOrder.items) {
+                if (oldItem.source === 'InventoryItem') {
+                    const inventoryItem = await InventoryItem.findById(oldItem.item);
+                    if (inventoryItem) {
+                        inventoryItem.quantity += oldItem.quantity; // Revert quantity
+                        await inventoryItem.save();
+                    }
+                } else if (oldItem.source === 'UserItems') {
+                    const userItem = await UserItems.findById(oldItem.item);
+                    if (userItem) {
+                        userItem.quantity += oldItem.quantity; // Revert quantity
+                        await userItem.save();
+                    }
+                }
+            }
+
+            // Apply new quantities
+            for (const newItem of this.items) {
+                if (newItem.source === 'InventoryItem') {
+                    const inventoryItem = await InventoryItem.findById(newItem.item);
+                    if (!inventoryItem) throw new Error('Inventory item not found');
+                    if (inventoryItem.quantity < newItem.quantity) throw new Error('Not enough inventory quantity');
+                    inventoryItem.quantity -= newItem.quantity;
+                    await inventoryItem.save();
+                    total += inventoryItem.price * newItem.quantity;
+                } else if (newItem.source === 'UserItems') {
+                    const userItem = await UserItems.findById(newItem.item);
+                    if (!userItem) throw new Error('User item not found');
+                    if (userItem.quantity < newItem.quantity) throw new Error('Not enough user item quantity');
+                    userItem.quantity -= newItem.quantity;
+                    await userItem.save();
+                    total += userItem.price * newItem.quantity;
+                }
+            }
+        } else {
+            // No changes to items; just keep the total price
+            total = this.totalPrice;
         }
-        this.totalPrice = total; // Set the total price for the order
+
+        this.totalPrice = total;
         next();
     } catch (error) {
         next(error);
     }
 });
+
 
 module.exports = mongoose.model('Order', orderSchema);
