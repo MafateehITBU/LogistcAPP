@@ -174,7 +174,7 @@ const editOrderDetails = asyncHandler(async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 });
-
+//Assign Order to Captains
 const assignCaptains = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -232,6 +232,89 @@ const assignCaptains = async (req, res) => {
         return res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+//Change Status for Admins (inStore , OutFor Delevery)
+const changeOrderStatusAdmin = async (req, res) => {
+    try {
+        const { orderId } = req.params; // Get order ID from URL params
+        const { status } = req.body; // Get new status from request body
+
+        // Allowed status updates for Admin
+        const allowedStatuses = ['InStore', 'OutToDelivery'];
+
+        // Check if the provided status is valid
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({
+                message: `Invalid status. Admin can only change status to ${allowedStatuses.join(', ')}`
+            });
+        }
+
+        // Find the order by ID
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Update the status
+        order.status = status;
+        await order.save();
+
+        res.status(200).json({
+            message: 'Order status updated successfully',
+            order
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
+
+const changeOrderStatusByCaptain = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status, refusalType, notes, updatedItems } = req.body;
+
+        const allowedStatuses = ['Delivered', 'Refused'];
+        const allowedRefusalTypes = ['NoResponse', 'Wrong Location', 'Partially', 'Ignore'];
+
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({
+                message: `Invalid status. Captain can only set status to Delivered or Refused.`,
+            });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        if (status === 'Refused') {
+            if (!allowedRefusalTypes.includes(refusalType)) {
+                return res.status(400).json({
+                    message: `Invalid refusal reason. Allowed values: ${allowedRefusalTypes.join(', ')}`,
+                });
+            }
+            order.refusal.type = refusalType;
+            order.refusal.description = notes || ''; // Store notes inside `refusal.description`
+        }
+
+        if (status === 'Refused' && refusalType === 'Partially') {
+            if (!updatedItems || !Array.isArray(updatedItems)) {
+                return res.status(400).json({ message: 'For partial refusal, updatedItems array is required' });
+            }
+            order.items = updatedItems;
+        }
+
+        order.status = status;
+        await order.save();
+
+        res.status(200).json({
+            message: 'Order status updated successfully by captain',
+            order,
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
+
 
 
 
@@ -244,4 +327,6 @@ module.exports = {
     getAllOrders,
     editOrderDetails,
     assignCaptains,
+    changeOrderStatusAdmin,
+    changeOrderStatusByCaptain,
 };

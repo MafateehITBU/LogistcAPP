@@ -15,7 +15,7 @@ const orderSchema = new mongoose.Schema({
             item: {
                 type: mongoose.Schema.Types.ObjectId,
                 required: true,
-                refPath: 'items.source' // Dynamically reference either InventoryItem or UserItems
+                refPath: 'items.source' 
             },
             source: { 
                 type: String, 
@@ -61,7 +61,11 @@ const orderSchema = new mongoose.Schema({
             type: String, 
             enum: ['NoResponse', 'Wrong Location', 'Partially', 'Ignore'] 
         }
-    }, // Only applicable if the status is "Refused"
+    }, 
+    notes: {
+        type: String, // Captain can add notes
+        required: false
+    },
     procurementOfficer: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'FulltimeCaptain',
