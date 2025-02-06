@@ -75,7 +75,16 @@ const Car = () => {
             const response = await axiosInstance.post("/car/create", newCar);
 
             if (response.status === 201) {
-                Swal.fire("Success!", "Car added successfully.", "success");
+                Swal.fire({
+                    icon: "success",
+                    title: "Success!",
+                    text: "Car added successfully.",
+                    toast: true,
+                    position: "bottom-end",
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
 
                 // Update the cars list to include the new car
                 setCars([...cars, { ...response.data }]);

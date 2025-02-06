@@ -40,6 +40,16 @@ const Reward = () => {
                 try {
                     const response = await axiosInstance.delete(`/reward/${id}`);
                     Swal.fire("Deleted!", response.data.message, "success");
+                    Swal.fire({
+                        icon: "success",
+                        title: "Deleted!",
+                        text: "Reward deleted successfully.",
+                        toast: true,
+                        position: "bottom-end",
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                    });
                     setRewards((prevRewards) => prevRewards.filter((reward) => reward._id !== id));
                 } catch (error) {
                     Swal.fire("Error", error.response?.data?.message || "An error occurred", "error");
@@ -62,7 +72,16 @@ const Reward = () => {
             await axiosInstance.put(`/coupon/${editingCoupon._id}`, editingCoupon);
             setSelectedCoupon(editingCoupon);
             setEditingCoupon(null);
-            Swal.fire("Success", "Coupon updated successfully!", "success");
+            Swal.fire({
+                icon: "success",
+                title: "Updated!",
+                text: "Coupon updated successfully!",
+                toast: true,
+                position: "bottom-end",
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
         } catch (error) {
             Swal.fire("Error", "Failed to update coupon.", "error");
         }
@@ -79,7 +98,16 @@ const Reward = () => {
 
             if (response.status === 201) {
                 // Show success alert
-                Swal.fire("Success!", "Reward added successfully.", "success");
+                Swal.fire({
+                    icon: "success",
+                    title: "Success!",
+                    text: "Reward added successfully.",
+                    toast: true,
+                    position: "bottom-end",
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
 
                 // Update the rewards list to include the new reward
                 setRewards([...rewards, response.data.reward]);
