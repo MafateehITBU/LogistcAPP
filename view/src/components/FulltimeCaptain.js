@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import DataTable from "react-data-table-component";
+import { Dropdown } from "react-bootstrap";
 import Swal from "sweetalert2";
 import axiosInstance from "../axiosConfig";
 
@@ -46,33 +47,6 @@ const FulltimeCaptain = () => {
         });
     };
 
-
-    const handleEdit = (captain) => {
-        setSelectedCaptain(captain);
-        const modal = new window.bootstrap.Modal(document.getElementById("editCaptainModal"));
-        modal.show();
-    };
-
-    const handleUpdate = async () => {
-        try {
-            const response = await axiosInstance.put(`/fulltimeCaptain/${selectedCaptain._id}`, selectedCaptain);
-            Swal.fire("Updated!", "The captain has been updated successfully.", "success");
-
-            // Update the state with the edited user details
-            setCaptains((prevCaptains) =>
-                prevCaptains.map((captain) =>
-                    captain._id === selectedCaptain._id ? { ...response.data } : captain
-                )
-            );
-
-            const modal = window.bootstrap.Modal.getInstance(document.getElementById("editCaptainModal"));
-            modal.hide();
-            fetchCaptains();
-        } catch (error) {
-            console.error("Error updating captain:", error);
-        }
-    };
-
     const handleImageClick = (imageUrl) => {
         setSelectedImage(imageUrl);
         setIsModalOpen(true);
@@ -83,6 +57,22 @@ const FulltimeCaptain = () => {
         setIsModalOpen(false);
     };
 
+    const handleUpdateStatus = async (captainId, status) => {
+        await axiosInstance.put(`/fulltimeCaptain/${captainId}/updateStatus`, {
+            accountStatus: status,
+        });
+        fetchCaptains();
+        Swal.fire({
+            icon: "success",
+            title: "Updated!",
+            text: "Status updated successfully.",
+            toast: true,
+            position: "bottom-end",
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+        });
+    };
 
     const columns = [
         {
@@ -147,18 +137,37 @@ const FulltimeCaptain = () => {
             sortable: true,
         },
         {
+            name: "Status",
+            cell: (row) => (
+                <Dropdown>
+                    <Dropdown.Toggle variant="light" className="p-0">
+                        <span
+                            className={`badge ${row.accountStatus === "approved" ? "bg-success" :
+                                row.accountStatus === "pending" ? "bg-warning" :
+                                    row.accountStatus === "rejected" ? "bg-danger" :
+                                        "bg-secondary"
+                                }`}
+                        >
+                            {row.accountStatus}
+                        </span>
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                        {["pending", "approved", "incomplete", "rejected"].map((accountStatus) => (
+                            <Dropdown.Item
+                                key={accountStatus}
+                                onClick={() => handleUpdateStatus(row._id, accountStatus)}
+                            >
+                                {accountStatus}
+                            </Dropdown.Item>
+                        ))}
+                    </Dropdown.Menu>
+                </Dropdown>
+            ),
+        },
+        {
             name: "Action",
             cell: (row) => (
                 <div className="form-button-action">
-                    <button
-                        type="button"
-                        className="btn btn-link btn-primary btn-lg"
-                        title="Edit Task"
-                        onClick={() => handleEdit(row)}
-
-                    >
-                        <i className="fa fa-edit"></i>
-                    </button>
                     <button
                         type="button"
                         className="btn btn-link btn-danger"
@@ -246,89 +255,6 @@ const FulltimeCaptain = () => {
                     />
                 </div>
             )}
-
-            {/* Edit Ticket Modal */}
-            <div
-                className="modal fade"
-                id="editCaptainModal"
-                tabIndex="-1"
-                role="dialog"
-                aria-hidden="true"
-            >
-                <div className="modal-dialog" role="document">
-                    <div className="modal-content">
-                        <div className="modal-header border-0">
-                            <h5 className="modal-title">Update Ticket</h5>
-                            <button
-                                type="button"
-                                className="btn-close"
-                                data-bs-dismiss="modal"
-                                aria-label="Close"
-                            ></button>
-                        </div>
-                        <div className="modal-body">
-                            <form>
-                                <div class="form-group form-group-default">
-                                    <label>Name</label>
-                                    <input
-                                        id="Name"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="Fill Reply"
-                                        value={selectedCaptain?.name || ""}
-                                        disabled
-                                        style={{ backgroundColor: 'white' }}
-                                    />
-                                </div>
-                                <div class="form-group form-group-default">
-                                    <label>Rating</label>
-                                    <input
-                                        id="Name"
-                                        type="number"
-                                        class="form-control"
-                                        placeholder="Fill Reply"
-                                        value={selectedCaptain?.rating || ""}
-                                        onChange={(e) =>
-                                            setSelectedCaptain({ ...selectedCaptain, rating: e.target.value })
-                                        }
-                                    />
-                                </div>
-                                <div className="col-sm-12">
-                                    <div className="form-group form-group-default">
-                                        <label>Role</label>
-                                        <select
-                                            className="form-select"
-                                            value={selectedCaptain?.role || ""}
-                                            onChange={(e) =>
-                                                setSelectedCaptain({ ...selectedCaptain, role: e.target.value })
-                                            }
-                                        >
-                                            <option value="delivery">Delivery</option>
-                                            <option value="procurement">Procurement</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div className="modal-footer border-0">
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleUpdate}
-                            >
-                                Save Changes
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-danger"
-                                data-bs-dismiss="modal"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };

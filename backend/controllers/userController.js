@@ -108,7 +108,7 @@ exports.signin = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
-        const token = jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '10h' });
         res.status(200).json({ message: 'Sign-in successful', token });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -141,7 +141,7 @@ exports.getUser = async (req, res) => {
 exports.updateUser = [
     upload.single('profilePic'),
     asyncHandler(async (req, res) => {
-        const { id } = req.params;
+        const id = req.user._id;
         let updates = req.body;
 
         try {

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-const Captain = require('../models/freelanceCaptain');
+const Captain = require('../models/FreelanceCaptain');
 const FulltimeCaptin = require('../models/FulltimeCaptain');
 const Car = require('../models/Car');
 const cloudinary = require('cloudinary').v2;
@@ -32,12 +32,12 @@ const upload = multer({ storage: storage });
 // Sign-up controller with profile picture upload
 exports.signup = [
     upload.fields([
-        { name: 'profilePic', maxCount: 1 },
-        { name: 'civilIdCardFront', maxCount: 1 },
-        { name: 'civilIdCardBack', maxCount: 1 },
-        { name: 'driverLicense', maxCount: 1 },
-        { name: 'vehicleLicense', maxCount: 1 },
-        { name: 'policeClearanceCertificate', maxCount: 1 },
+        { name: 'profilePic'},
+        { name: 'civilIdCardFront'},
+        { name: 'civilIdCardBack'},
+        { name: 'driverLicense'},
+        { name: 'vehicleLicense'},
+        { name: 'policeClearanceCertificate'},
     ]),
     asyncHandler(async (req, res) => {
         try {
@@ -59,9 +59,9 @@ exports.signup = [
             const policeClearanceCertificateUrl = req.files.policeClearanceCertificate ? await uploadFile(req.files.policeClearanceCertificate[0]) : null;
 
             // Ensure all files are uploaded
-            if (!civilIdCardFrontUrl || !civilIdCardBackUrl || !driverLicenseUrl || !vehicleLicenseUrl || !policeClearanceCertificateUrl) {
-                return res.status(400).json({ error: 'All required documents must be uploaded.' });
-            }
+            // if (!civilIdCardFrontUrl || !civilIdCardBackUrl || !driverLicenseUrl || !vehicleLicenseUrl || !policeClearanceCertificateUrl) {
+            //     return res.status(400).json({ error: 'All required documents must be uploaded.' });
+            // }
 
             // Create the car
             const car = new Car({
@@ -102,7 +102,6 @@ exports.signup = [
     }),
 ];
 
-
 // Sign-in controller
 exports.signin = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
@@ -112,6 +111,10 @@ exports.signin = asyncHandler(async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, captain.password);
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+
+    if (captain.accountStatus !== 'approved') {
+        return res.status(403).json({ error: 'Captain profile is not approved yet!' });
+    }
 
     const token = jwt.sign({ captainId: captain.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
     res.status(200).json({ message: 'Sign-in successful', token });
@@ -133,32 +136,76 @@ exports.getCaptain = asyncHandler(async (req, res) => {
 
 // Update captain controller
 exports.updateCaptain = [
-    upload.single('profilePic'),
+    upload.single("profilePic"),
     asyncHandler(async (req, res) => {
-        const { id } = req.params;
+        const id = req.captain._id;
         let updates = req.body;
+
+        console.log("Updating Captain ID:", id);
+        console.log("Updates:", updates);
 
         try {
             // Check if a file is uploaded for profilePic
             if (req.file) {
                 const result = await cloudinary.uploader.upload(req.file.path);
-                const profilePictureUrl = result.secure_url;
-                2
-                updates.profilePicture = profilePictureUrl;
+                updates.profilePicture = result.secure_url;
 
-                fs.unlinkSync(req.file.path);
+                // Delete file from local storage after upload
+                if (req.file.path) {
+                    fs.unlinkSync(req.file.path);
+                }
             }
 
-            const captain = await Captain.findByIdAndUpdate(id, updates, { new: true });
-            if (!captain) return res.status(404).json({ error: 'Captain not found' });
+            // Find and update the captain
+            const captain = await Captain.findByIdAndUpdate(id, updates, { new: true }) ||
+                await FreelanceCaptain.findByIdAndUpdate(id, updates, { new: true });
 
-            res.status(200).json({ message: 'Captain updated successfully', captain });
+            if (!captain) {
+                return res.status(404).json({ error: "Captain not found" });
+            }
+
+            res.status(200).json({ message: "Captain updated successfully", captain });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            console.error("Update Captain Error:", error);
+            res.status(500).json({ error: "Internal server error" });
         }
     }),
 ];
 
+// Update account status by Admin
+exports.updateAccountStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { accountStatus } = req.body;
+
+        // Allowed status updates for Admin
+        const allowedStatuses = ['pending', 'approved', 'incomplete', 'rejected'];
+
+        // Check if the provided status is valid
+        if (!allowedStatuses.includes(accountStatus)) {
+            return res.status(400).json({
+                message: `Invalid status. Admin can only change status to ${allowedStatuses.join(', ')}`
+            });
+        }
+
+        // Find the captain by ID
+        const captain = await Captain.findById(id);
+        if (!captain) {
+            return res.status(404).json({ message: 'captain not found' });
+        }
+
+        // Update the status
+        captain.accountStatus = accountStatus;
+        await captain.save();
+
+        res.status(200).json({
+            message: 'captain status updated successfully',
+            captain
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
 // Delete captain controller
 exports.deleteCaptain = asyncHandler(async (req, res) => {
     const { id } = req.params;

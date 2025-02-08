@@ -18,7 +18,10 @@ router.get('/', adminAuth, captainController.getAllCaptains);
 router.get('/:id', captainController.getCaptain);
 
 // Update a captain by ID
-router.put('/:id', captainController.updateCaptain);
+router.put('/update', captainAuth, captainController.updateCaptain);
+
+// Update account Status
+router.put('/:id/updateStatus', adminAuth, captainController.updateAccountStatus);
 
 // Delete a captain by ID
 router.delete('/:id', adminAuth, captainController.deleteCaptain);

@@ -67,7 +67,6 @@ exports.signup = [
     }),
 ];
 
-
 // Sign-in controller
 exports.signin = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
@@ -77,6 +76,10 @@ exports.signin = asyncHandler(async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, captain.password);
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+
+    if (captain.accountStatus !== 'approved') {
+        return res.status(403).json({ error: 'Captain profile is not approved yet!' });
+    }
 
     const token = jwt.sign({ captainId: captain.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
     res.status(200).json({ message: 'Sign-in successful', token });
@@ -100,7 +103,7 @@ exports.getCaptain = asyncHandler(async (req, res) => {
 exports.updateCaptain = [
     upload.single('profilePic'),
     asyncHandler(async (req, res) => {
-        const { id } = req.params;
+        const id = req.captain._id;
         let updates = req.body;
 
         try {
@@ -108,7 +111,6 @@ exports.updateCaptain = [
             if (req.file) {
                 const result = await cloudinary.uploader.upload(req.file.path);
                 const profilePictureUrl = result.secure_url;
-                2
                 updates.profilePicture = profilePictureUrl;
 
                 fs.unlinkSync(req.file.path);
@@ -123,6 +125,41 @@ exports.updateCaptain = [
         }
     }),
 ];
+
+// Update account status by Admin
+exports.updateAccountStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { accountStatus } = req.body;
+
+        // Allowed status updates for Admin
+        const allowedStatuses = ['pending', 'approved', 'incomplete', 'rejected'];
+
+        // Check if the provided status is valid
+        if (!allowedStatuses.includes(accountStatus)) {
+            return res.status(400).json({
+                message: `Invalid status. Admin can only change status to ${allowedStatuses.join(', ')}`
+            });
+        }
+
+        // Find the captain by ID
+        const captain = await Captain.findById(id);
+        if (!captain) {
+            return res.status(404).json({ message: 'captain not found' });
+        }
+
+        // Update the status
+        captain.accountStatus = accountStatus;
+        await captain.save();
+
+        res.status(200).json({
+            message: 'captain status updated successfully',
+            captain
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
 
 // Delete captain controller
 exports.deleteCaptain = asyncHandler(async (req, res) => {

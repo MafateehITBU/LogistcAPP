@@ -49,23 +49,27 @@ const freelanceCaptainSchema = mongoose.Schema({
     },
     civilIdCardFront: {
         type: String,
-        required: true,
     },
     civilIdCardBack: {
         type: String,
-        required: true,
+        // required: true,
     },
     driverLicense: {
         type: String,
-        required: true,
+        // required: true,
     },
     vehicleLicense: {
         type: String,
-        required: true,
+        // required: true,
     },
     policeClearanceCertificate: {
         type: String,
         required: true,
+    },
+    accountStatus: {
+        type: String,
+        default: 'pending',
+        enum: ['pending', 'approved', 'incomplete', 'rejected']
     }
 }, { timestamps: true });
 

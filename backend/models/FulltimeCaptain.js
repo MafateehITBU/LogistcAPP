@@ -47,6 +47,11 @@ const fulltimeCaptainSchema = mongoose.Schema({
     car_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Car',
+    },
+    accountStatus: {
+        type: String,
+        default: 'pending',
+        enum: ['pending', 'approved', 'incomplete', 'rejected']
     }
 }, { timestamps: true });
 

@@ -4,7 +4,7 @@ const InventoryItem = require('../models/InventoryItem');
 const UserItems = require('../models/userItems');
 const asyncHandler = require('express-async-handler');
 const FulltimeCaptain = require('../models/FulltimeCaptain');
-const FreelanceCaptain = require('../models/FreelanceCaptain');
+const FreelanceCaptain = require('../models/freelanceCaptain');
 const mongoose = require('mongoose');
 
 // Helper: Validate user by userId
@@ -83,7 +83,7 @@ const getAllOrders = asyncHandler(async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 });
-//create new order : User
+// Create new order: User
 const createOrder = asyncHandler(async (req, res) => {
     try {
         const { items, city, district, area, street } = req.body;
@@ -120,7 +120,11 @@ const createOrder = asyncHandler(async (req, res) => {
         user.orders.push(order._id);
         await user.save();
 
-     
+        // Emit a notification for the new order
+        req.io.emit("newOrder", {
+            message: `New order received`,
+            createdAt: order.createdAt,
+        });
 
         res.status(201).json({ message: 'Order created successfully', order });
     } catch (error) {

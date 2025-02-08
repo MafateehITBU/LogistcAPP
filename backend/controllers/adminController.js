@@ -25,7 +25,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
         const accessToken = jwt.sign(
             { id: admin.id, role: "admin" },
             process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: "1h" }
+            { expiresIn: "10h" }
         );
 
         console.log("Generated Token:", accessToken); // Log the token

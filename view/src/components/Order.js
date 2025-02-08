@@ -57,9 +57,8 @@ const Order = () => {
         setShowModal(true);
     };
 
-    const handleUpdateStatus = async (row, status) => {
-        await axiosInstance.put(`/order/status`, {
-            orderId: row._id,
+    const handleUpdateStatus = async (orderId, status) => {
+        await axiosInstance.put(`/order/${orderId}/change-status`, {
             status: status,
         });
         fetchOrders();
@@ -74,12 +73,56 @@ const Order = () => {
             timerProgressBar: true,
         });
     };
-    
+
+    const handleAddProcurement = async (orderId, procurementOfficerId) => {
+        try {
+            await axiosInstance.put(`/order/${orderId}/assign-captains`, {
+                procurementOfficer: procurementOfficerId
+            });
+            fetchOrders();
+            Swal.fire({
+                icon: "success",
+                title: "Success!",
+                text: "Procurement officer assigned successfully.",
+                toast: true,
+                position: "bottom-end",
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+        } catch (error) {
+            console.error("Error assigning procurement officer:", error);
+            Swal.fire("Error", "Failed to assign procurement officer.", "error");
+        }
+    };
+
+    const handleAddDelivery = async (orderId, deliveryCaptainId) => {
+        try {
+            await axiosInstance.put(`/order/${orderId}/assign-captains`, {
+                deliveryCaptain: deliveryCaptainId
+            });
+            fetchOrders();
+            Swal.fire({
+                icon: "success",
+                title: "Success!",
+                text: "Delivery captain assigned successfully.",
+                toast: true,
+                position: "bottom-end",
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+        } catch (error) {
+            console.error("Error assigning delivery captain:", error);
+            Swal.fire("Error", "Failed to assign delivery captain.", "error");
+        }
+    };
+
     const columns = [
         {
             name: "User Name",
             selector: (row) => row.user.name,
-            sortable: false,
+            sortable: true,
         },
         {
             name: "City",
@@ -103,12 +146,50 @@ const Order = () => {
         },
         {
             name: "Procurement",
-            selector: (row) => row.procurementOfficer ? row.procurementOfficer : "Not assigned",
+            cell: (row) => {
+                const assignedProcurement = procurement.find(officer => officer._id === row.procurementOfficer);
+                return (
+                    <Dropdown>
+                        <Dropdown.Toggle variant="light" className="p-0">
+                            {assignedProcurement ? <span className="badge bg-success"> {assignedProcurement.name}</span> : <span className="badge bg-danger">"Not assigned"</span>}
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                            {procurement.map((officer) => (
+                                <Dropdown.Item
+                                    key={officer._id}
+                                    onClick={() => handleAddProcurement(row._id, officer._id)}
+                                >
+                                    {officer.name}
+                                </Dropdown.Item>
+                            ))}
+                        </Dropdown.Menu>
+                    </Dropdown>
+                );
+            },
             sortable: true,
         },
         {
             name: "Delivery",
-            selector: (row) => row.deliveryCaptain ? row.deliveryCaptain : "Not assigned",
+            cell: (row) => {
+                const assignedDelivery = delivery.find(captain => captain._id === row.deliveryCaptain);
+                return (
+                    <Dropdown>
+                        <Dropdown.Toggle variant="light" className="p-0">
+                            {assignedDelivery ? <span className="badge bg-success"> {assignedDelivery.name}</span> : <span className="badge bg-danger">Not assigned</span>}
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                            {delivery.map((captain) => (
+                                <Dropdown.Item
+                                    key={captain._id}
+                                    onClick={() => handleAddDelivery(row._id, captain._id)}
+                                >
+                                    {captain.name}
+                                </Dropdown.Item>
+                            ))}
+                        </Dropdown.Menu>
+                    </Dropdown>
+                );
+            },
             sortable: true,
         },
         {
@@ -117,31 +198,25 @@ const Order = () => {
                 <Dropdown>
                     <Dropdown.Toggle variant="light" className="p-0">
                         <span
-                            className={`badge ${row.status === "Delivered"
-                                ? "bg-success"
-                                : row.status === "Pending"
-                                    ? "bg-warning"
-                                    : row.status === "Refused"
-                                        ? "bg-danger"
-                                        : row.status === "OutToDelivery"
-                                            ? "bg-info"
-                                            : "bg-secondary"
+                            className={`badge ${row.status === "Delivered" ? "bg-success" :
+                                    row.status === "Pending" ? "bg-warning" :
+                                        row.status === "Refused" ? "bg-danger" :
+                                            row.status === "OutToDelivery" ? "bg-info" :
+                                                "bg-secondary"
                                 }`}
                         >
                             {row.status}
                         </span>
                     </Dropdown.Toggle>
-                    <Dropdown.Menu style={{ maxHeight: "80px", overflowY: "auto" }}>
-                        {["Pending", "InStore", "OutToDelivery", "Delivered", "Refused"].map(
-                            (status) => (
-                                <Dropdown.Item
-                                    key={status}
-                                    onClick={() => handleUpdateStatus(row, status)}
-                                >
-                                    {status}
-                                </Dropdown.Item>
-                            )
-                        )}
+                    <Dropdown.Menu>
+                        {["InStore", "OutToDelivery"].map((status) => (
+                            <Dropdown.Item
+                                key={status}
+                                onClick={() => handleUpdateStatus(row._id, status)}
+                            >
+                                {status}
+                            </Dropdown.Item>
+                        ))}
                     </Dropdown.Menu>
                 </Dropdown>
             ),
@@ -149,14 +224,11 @@ const Order = () => {
         {
             name: "Order Details",
             cell: (row) => (
-                <button
-                    className="btn btn-primary"
-                    onClick={() => handleViewItems(row.items)}
-                >
+                <button className="btn btn-primary" onClick={() => handleViewItems(row.items)}>
                     View
                 </button>
             ),
-        }
+        },
     ];
 
     const customStyles = {

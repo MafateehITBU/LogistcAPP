@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import DataTable from "react-data-table-component";
+import { Dropdown } from "react-bootstrap";
 import Swal from "sweetalert2";
 import axiosInstance from "../axiosConfig";
 
 const FreelanceCaptain = () => {
     const [captains, setCaptains] = useState([]);
     const [filterText, setFilterText] = useState("");
-    const [selectedCaptain, setSelectedCaptain] = useState(null);
-    const [selectedImage, setSelectedImage] = useState(null); // To store the clicked image
+    const [selectedImages, setSelectedImages] = useState([]); // Store multiple images
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
@@ -37,8 +37,7 @@ const FreelanceCaptain = () => {
                 try {
                     await axiosInstance.delete(`/freelanceCaptain/${id}`);
                     Swal.fire("Deleted!", "The captain has been deleted.", "success");
-                    // Update the state to remove the deleted captain
-                    setCaptains((prevCaptains) => prevCaptains.filter((captain) => captain._id !== id));
+                    setCaptains((prev) => prev.filter((captain) => captain._id !== id));
                 } catch (error) {
                     console.error("Error deleting captain:", error);
                 }
@@ -46,43 +45,33 @@ const FreelanceCaptain = () => {
         });
     };
 
-
-    const handleEdit = (captain) => {
-        setSelectedCaptain(captain);
-        const modal = new window.bootstrap.Modal(document.getElementById("editCaptainModal"));
-        modal.show();
-    };
-
-    const handleUpdate = async () => {
-        try {
-            const response = await axiosInstance.put(`/freelanceCaptain/${selectedCaptain._id}`, selectedCaptain);
-            Swal.fire("Updated!", "The captain has been updated successfully.", "success");
-
-            // Update the state with the edited user details
-            setCaptains((prevCaptains) =>
-                prevCaptains.map((captain) =>
-                    captain._id === selectedCaptain._id ? { ...response.data } : captain
-                )
-            );
-
-            const modal = window.bootstrap.Modal.getInstance(document.getElementById("editCaptainModal"));
-            modal.hide();
-            fetchCaptains();
-        } catch (error) {
-            console.error("Error updating captain:", error);
-        }
-    };
-
-    const handleImageClick = (imageUrl) => {
-        setSelectedImage(imageUrl);
+    const handleViewDocs = (...images) => {
+        const filteredImages = images.filter((img) => img); // Remove null/undefined values
+        setSelectedImages(filteredImages);
         setIsModalOpen(true);
     };
 
     const closeModal = () => {
-        setSelectedImage(null);
+        setSelectedImages([]);
         setIsModalOpen(false);
     };
 
+    const handleUpdateStatus = async (captainId, status) => {
+        await axiosInstance.put(`/freelanceCaptain/${captainId}/updateStatus`, {
+            accountStatus: status,
+        });
+        fetchCaptains();
+        Swal.fire({
+            icon: "success",
+            title: "Updated!",
+            text: "Status updated successfully.",
+            toast: true,
+            position: "bottom-end",
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+        });
+    };
 
     const columns = [
         {
@@ -91,31 +80,17 @@ const FreelanceCaptain = () => {
                 row.profilePicture ? (
                     <img
                         src={row.profilePicture}
-                        alt="user profilePicture"
+                        alt="Profile"
                         style={{ width: "50px", height: "50px", borderRadius: "5px", cursor: "pointer" }}
-                        onClick={() => handleImageClick(row.profilePicture)} // Handle click to enlarge image
                     />
                 ) : (
-                    "No profilePicture attached"
+                    "No image"
                 ),
         },
-        {
-            name: "Name",
-            selector: (row) => row.name,
-            sortable: true,
-        },
-        {
-            name: "Email",
-            selector: (row) => row.email,
-        },
-        {
-            name: "Phone",
-            selector: (row) => row.phone,
-        },
-        {
-            name: "Wallet No.",
-            selector: (row) => row.walletNo,
-        },
+        { name: "Name", selector: (row) => row.name, sortable: true },
+        { name: "Email", selector: (row) => row.email },
+        { name: "Phone", selector: (row) => row.phone },
+        { name: "Wallet No.", selector: (row) => row.walletNo },
         {
             name: "Rating",
             selector: (row) => (
@@ -139,21 +114,55 @@ const FreelanceCaptain = () => {
         {
             name: "Points",
             selector: (row) => row.points,
-            sortable: true,
+        },
+        {
+            name: "Docs",
+            cell: (row) => (
+                <button
+                    className="btn btn-primary"
+                    onClick={() =>
+                        handleViewDocs(
+                            row.civilIdCardFront,
+                            row.civilIdCardBack,
+                            row.driverLicense,
+                            row.vehicleLicense,
+                            row.policeClearanceCertificate
+                        )
+                    }
+                >
+                    View
+                </button>
+            ),
+        },
+        {
+            name: "Status",
+            cell: (row) => (
+                <Dropdown>
+                    <Dropdown.Toggle variant="light" className="p-0">
+                        <span
+                            className={`badge ${row.accountStatus === "approved" ? "bg-success" :
+                                row.accountStatus === "pending" ? "bg-warning" :
+                                    row.accountStatus === "rejected" ? "bg-danger" :
+                                        "bg-secondary"
+                                }`}
+                        >
+                            {row.accountStatus}
+                        </span>
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                        {["pending", "approved", "incomplete", "rejected"].map((status) => (
+                            <Dropdown.Item key={status} onClick={() => handleUpdateStatus(row._id, status)}>
+                                {status}
+                            </Dropdown.Item>
+                        ))}
+                    </Dropdown.Menu>
+                </Dropdown>
+            ),
         },
         {
             name: "Action",
             cell: (row) => (
                 <div className="form-button-action">
-                    <button
-                        type="button"
-                        className="btn btn-link btn-primary btn-lg"
-                        title="Edit Task"
-                        onClick={() => handleEdit(row)}
-
-                    >
-                        <i className="fa fa-edit"></i>
-                    </button>
                     <button
                         type="button"
                         className="btn btn-link btn-danger"
@@ -167,17 +176,11 @@ const FreelanceCaptain = () => {
         },
     ];
 
-    const filteredCaptains = captains.filter((captain) => {
-        return (
-            captain.name?.toLowerCase().includes(filterText.toLowerCase()) ||
-            captain.email?.toLowerCase().includes(filterText.toLowerCase()) ||
-            captain.phone?.toLowerCase().includes(filterText.toLowerCase()) ||
-            captain.contractType?.toLowerCase().includes(filterText.toLowerCase()) ||
-            captain.role?.toLowerCase().includes(filterText.toLowerCase()) ||
-            captain.walletNo?.toLowerCase().includes(filterText.toLowerCase()) 
-        );
-    });
-
+    const filteredCaptains = captains.filter((captain) =>
+        ["name", "email", "phone", "walletNo"].some((key) =>
+            captain[key]?.toLowerCase().includes(filterText.toLowerCase())
+        )
+    );
 
     return (
         <div className="container" style={{ marginTop: "80px" }}>
@@ -204,12 +207,7 @@ const FreelanceCaptain = () => {
                                 highlightOnHover
                                 striped
                                 customStyles={{
-                                    headCells: {
-                                        style: {
-                                            fontWeight: "bold",
-                                            fontSize: "16px",
-                                        },
-                                    },
+                                    headCells: { style: { fontWeight: "bold", fontSize: "16px" } },
                                 }}
                             />
                         </div>
@@ -217,7 +215,7 @@ const FreelanceCaptain = () => {
                 </div>
             </div>
 
-            {/* Modal for displaying enlarged image */}
+            {/* Modal for displaying documents */}
             {isModalOpen && (
                 <div
                     style={{
@@ -232,98 +230,42 @@ const FreelanceCaptain = () => {
                         justifyContent: "center",
                         zIndex: 10000,
                     }}
-                    onClick={closeModal} // Close modal on outside click
+                    onClick={closeModal}
                 >
-                    <img
-                        src={selectedImage}
-                        alt="Enlarged file"
-                        style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "10px" }}
-                    />
-                </div>
-            )}
-
-            {/* Edit Ticket Modal */}
-            <div
-                className="modal fade"
-                id="editCaptainModal"
-                tabIndex="-1"
-                role="dialog"
-                aria-hidden="true"
-            >
-                <div className="modal-dialog" role="document">
-                    <div className="modal-content">
-                        <div className="modal-header border-0">
-                            <h5 className="modal-title">Update Ticket</h5>
-                            <button
-                                type="button"
-                                className="btn-close"
-                                data-bs-dismiss="modal"
-                                aria-label="Close"
-                            ></button>
-                        </div>
-                        <div className="modal-body">
-                            <form>
-                                <div class="form-group form-group-default">
-                                    <label>Name</label>
-                                    <input
-                                        id="Name"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="Fill Reply"
-                                        value={selectedCaptain?.name || ""}
-                                        disabled
-                                        style={{ backgroundColor: 'white' }}
-                                    />
-                                </div>
-                                <div class="form-group form-group-default">
-                                    <label>Rating</label>
-                                    <input
-                                        id="Name"
-                                        type="number"
-                                        class="form-control"
-                                        placeholder="Fill Reply"
-                                        value={selectedCaptain?.rating || ""}
-                                        onChange={(e) =>
-                                            setSelectedCaptain({ ...selectedCaptain, rating: e.target.value })
-                                        }
-                                    />
-                                </div>
-                                <div className="col-sm-12">
-                                    <div className="form-group form-group-default">
-                                        <label>Role</label>
-                                        <select
-                                            className="form-select"
-                                            value={selectedCaptain?.role || ""}
-                                            onChange={(e) =>
-                                                setSelectedCaptain({ ...selectedCaptain, role: e.target.value })
-                                            }
-                                        >
-                                            <option value="delivery">Delivery</option>
-                                            <option value="procurement">Procurement</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div className="modal-footer border-0">
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleUpdate}
-                            >
-                                Save Changes
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-danger"
-                                data-bs-dismiss="modal"
-                            >
-                                Close
-                            </button>
-                        </div>
+                    <div
+                        style={{
+                            backgroundColor: "white",
+                            padding: "20px",
+                            borderRadius: "10px",
+                            width: "50vw", // Adjust width
+                            maxWidth: "600px", // Prevent oversized modals
+                            maxHeight: "80vh", // Prevent it from going off-screen
+                            overflowY: "auto",
+                            boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
+                            display: "flex",
+                            flexDirection: "column"
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h4 style={{alignSelf: "center"}}>Documents</h4>
+                        {selectedImages.length > 0 ? (
+                            selectedImages.map((image, index) => (
+                                <img
+                                    key={index}
+                                    src={image}
+                                    alt={`Document ${index + 1}`}
+                                    style={{ width: "100%", marginBottom: "10px", borderRadius: "5px" }}
+                                />
+                            ))
+                        ) : (
+                            <p>No documents available</p>
+                        )}
+                        <button className="btn btn-secondary mt-2" onClick={closeModal}>
+                            Close
+                        </button>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

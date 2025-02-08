@@ -24,7 +24,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Add new item
-// Add new item
 exports.addItem = [
   upload.single('image'),
   async (req, res) => {
