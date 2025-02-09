@@ -32,11 +32,11 @@ const orderSchema = new mongoose.Schema({
         type: String, 
         required: true, 
         enum: ['Amman', 'Irbid', 'Zarqa', 'Mafraq', 'Jerash', 'Ajloun', 'Madaba', 'Karak', 'Tafilah', 'Ma’an', 'Aqaba']
-    }, // All Jordan cities
+    },
     district: { 
         type: String, 
         enum: ['Naaour', 'Wadi-Alseer', 'Marka', 'Al-Gezza', 'Sahab', 'Qwesmeh', 'Mwaqar', 'AL-Jamma', 'AL-Qasaba'] 
-    }, // Optional
+    },
     area: { 
         type: String, 
         required: true 
@@ -48,13 +48,19 @@ const orderSchema = new mongoose.Schema({
     totalPrice: { 
         type: Number, 
         required: true 
-    }, // Calculated based on items
+    },
     status: { 
         type: String, 
         required: true, 
         enum: ['Pending', 'InStore', 'OutToDelivery', 'Delivered', 'Refused'], 
         default: 'Pending' 
     },
+    orderType: { 
+        type: String, 
+        required: true, 
+        enum: ['Normal', 'Fast'], 
+        default: 'Normal' 
+    }, // New order type field
     refusal: {
         description: { type: String },
         type: { 
@@ -63,7 +69,7 @@ const orderSchema = new mongoose.Schema({
         }
     }, 
     notes: {
-        type: String, // Captain can add notes
+        type: String, 
         required: false
     },
     procurementOfficer: { 
@@ -81,16 +87,13 @@ const orderSchema = new mongoose.Schema({
         enum: ['FulltimeCaptain', 'FreelanceCaptain'],
         default: null
     }
-    
 }, { timestamps: true });
 
 orderSchema.pre('save', async function (next) {
     try {
         let total = 0;
 
-        // Check if the document is new
         if (this.isNew) {
-            // New order: Deduct quantities and calculate total
             for (const item of this.items) {
                 if (item.source === 'InventoryItem') {
                     const inventoryItem = await InventoryItem.findById(item.item);
@@ -109,27 +112,24 @@ orderSchema.pre('save', async function (next) {
                 }
             }
         } else if (this.isModified('items')) {
-            // Updating existing order: Revert old quantities and apply new ones
             const existingOrder = await mongoose.model('Order').findById(this._id).lean();
 
-            // Revert old quantities
             for (const oldItem of existingOrder.items) {
                 if (oldItem.source === 'InventoryItem') {
                     const inventoryItem = await InventoryItem.findById(oldItem.item);
                     if (inventoryItem) {
-                        inventoryItem.quantity += oldItem.quantity; // Revert quantity
+                        inventoryItem.quantity += oldItem.quantity;
                         await inventoryItem.save();
                     }
                 } else if (oldItem.source === 'UserItems') {
                     const userItem = await UserItems.findById(oldItem.item);
                     if (userItem) {
-                        userItem.quantity += oldItem.quantity; // Revert quantity
+                        userItem.quantity += oldItem.quantity;
                         await userItem.save();
                     }
                 }
             }
 
-            // Apply new quantities
             for (const newItem of this.items) {
                 if (newItem.source === 'InventoryItem') {
                     const inventoryItem = await InventoryItem.findById(newItem.item);
@@ -148,7 +148,6 @@ orderSchema.pre('save', async function (next) {
                 }
             }
         } else {
-            // No changes to items; just keep the total price
             total = this.totalPrice;
         }
 
@@ -158,6 +157,5 @@ orderSchema.pre('save', async function (next) {
         next(error);
     }
 });
-
 
 module.exports = mongoose.model('Order', orderSchema);

@@ -84,10 +84,14 @@
         }
     });
     
-    //create new order : User
     const createOrder = asyncHandler(async (req, res) => {
         try {
-            const { items, city, district, area, street } = req.body;
+            const { items, city, district, area, street, orderType = 'Normal' } = req.body;
+    
+            // Validate orderType
+            if (!['Normal', 'Fast'].includes(orderType)) {
+                return res.status(400).json({ message: 'Invalid order type. Allowed values: Normal, Fast' });
+            }
     
             // Extract userId from the authenticated user
             const userId = req.user._id;
@@ -115,6 +119,7 @@
                 street,
                 totalPrice,
                 status: 'Pending',
+                orderType, // Include order type
             });
     
             // Save the order
@@ -136,11 +141,10 @@
                 totalPoints: user.points 
             });
         } catch (error) {
-            console.error('Error creating order:', error.message); // Log for debugging
+            console.error('Error creating order:', error.message);
             res.status(400).json({ message: error.message });
         }
     });
-    
     //Edit Order User
     const editOrderDetails = asyncHandler(async (req, res) => {
         try {
