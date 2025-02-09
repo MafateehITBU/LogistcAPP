@@ -52,15 +52,15 @@ const freelanceCaptainSchema = mongoose.Schema({
     },
     civilIdCardBack: {
         type: String,
-        // required: true,
+        required: true,
     },
     driverLicense: {
         type: String,
-        // required: true,
+        required: true,
     },
     vehicleLicense: {
         type: String,
-        // required: true,
+        required: true,
     },
     policeClearanceCertificate: {
         type: String,
