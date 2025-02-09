@@ -3,13 +3,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const Captain = require('../models/FreelanceCaptain');
-const FulltimeCaptin = require('../models/FulltimeCaptain');
 const Car = require('../models/Car');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const fs = require('fs');
-const { unlink } = require("fs/promises"); 
-
+const fs = require('fs/promises'); // Use async fs functions
 const path = require('path');
 
 // Cloudinary configuration
@@ -19,10 +16,21 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Multer setup for file storage
+// Ensure upload directory exists
+const uploadDir = path.join(__dirname, '../uploads');
+const ensureUploadDir = async () => {
+    try {
+        await fs.mkdir(uploadDir, { recursive: true }); // Create directory if not exists
+    } catch (err) {
+        console.error("Error creating upload directory:", err);
+    }
+};
+ensureUploadDir();
+
+// Multer storage setup
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname));
@@ -31,15 +39,41 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+const uploadFile = async (file) => {
+    try {
+        if (!file || !file.path) {
+            console.error("File object missing:", file);
+            return null;
+        }
+
+        console.log(`Uploading file: ${file.path}`);
+
+        const result = await cloudinary.uploader.upload(file.path);
+
+        
+        try {
+            await fs.access(file.path); // Check if file exists
+            await fs.unlink(file.path); // Delete file safely
+            console.log(`Deleted local file: ${file.path}`);
+        } catch (unlinkError) {
+            console.warn(`File already deleted or not found: ${file.path}`);
+        }
+
+        return result.secure_url;
+    } catch (err) {
+        console.error("File upload error:", err);
+        return null;
+    }
+};
 
 exports.signup = [
     upload.fields([
-        { name: 'profilePic' ,maxCount:1},
-        { name: 'civilIdCardFront',maxCount:1 },
-        { name: 'civilIdCardBack' ,maxCount:1},
-        { name: 'driverLicense',maxCount:1 },
-        { name: 'vehicleLicense' ,maxCount:1},
-        { name: 'policeClearanceCertificate',maxCount:1 },
+        { name: 'profilePic', maxCount: 1 },
+        { name: 'civilIdCardFront', maxCount: 1 },
+        { name: 'civilIdCardBack', maxCount: 1 },
+        { name: 'driverLicense', maxCount: 1 },
+        { name: 'vehicleLicense', maxCount: 1 },
+        { name: 'policeClearanceCertificate', maxCount: 1 },
     ]),
     asyncHandler(async (req, res) => {
         try {
@@ -49,18 +83,6 @@ exports.signup = [
             if (!req.files || Object.keys(req.files).length === 0) {
                 return res.status(400).json({ error: "No files uploaded." });
             }
-
-            // Upload files in parallel
-            const uploadFile = async (file) => {
-                try {
-                    const result = await cloudinary.uploader.upload(file.path);
-                    await unlink(file.path); // Safely remove file
-                    return result.secure_url;
-                } catch (err) {
-                    console.error("File upload error:", err);
-                    return null; // Return null instead of throwing
-                }
-            };
 
             const uploadPromises = {
                 profilePictureUrl: req.files.profilePic ? uploadFile(req.files.profilePic[0]) : null,
@@ -128,6 +150,7 @@ exports.signup = [
         }
     }),
 ];
+
 
 // Sign-in controller
 exports.signin = asyncHandler(async (req, res) => {
