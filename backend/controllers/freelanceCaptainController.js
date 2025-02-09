@@ -8,6 +8,8 @@ const Car = require('../models/Car');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const fs = require('fs');
+const { unlink } = require("fs/promises"); 
+
 const path = require('path');
 
 // Cloudinary configuration
@@ -29,41 +31,63 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Sign-up controller with profile picture upload
+
 exports.signup = [
     upload.fields([
-        { name: 'profilePic'},
-        { name: 'civilIdCardFront'},
-        { name: 'civilIdCardBack'},
-        { name: 'driverLicense'},
-        { name: 'vehicleLicense'},
-        { name: 'policeClearanceCertificate'},
+        { name: 'profilePic' ,maxCount:1},
+        { name: 'civilIdCardFront',maxCount:1 },
+        { name: 'civilIdCardBack' ,maxCount:1},
+        { name: 'driverLicense',maxCount:1 },
+        { name: 'vehicleLicense' ,maxCount:1},
+        { name: 'policeClearanceCertificate',maxCount:1 },
     ]),
     asyncHandler(async (req, res) => {
         try {
             const { name, email, password, phone, shift, car_palette, car_type, manufactureYear, licenseExpiryDate, insuranceType, carOwnership } = req.body;
             const lowercaseEmail = email.toLowerCase();
 
-            // Upload files to Cloudinary
+            if (!req.files || Object.keys(req.files).length === 0) {
+                return res.status(400).json({ error: "No files uploaded." });
+            }
+
+            // Upload files in parallel
             const uploadFile = async (file) => {
-                const result = await cloudinary.uploader.upload(file.path);
-                fs.unlinkSync(file.path); // Delete local file after upload
-                return result.secure_url;
+                try {
+                    const result = await cloudinary.uploader.upload(file.path);
+                    await unlink(file.path); // Safely remove file
+                    return result.secure_url;
+                } catch (err) {
+                    console.error("File upload error:", err);
+                    return null; // Return null instead of throwing
+                }
             };
 
-            const profilePictureUrl = req.files.profilePic ? await uploadFile(req.files.profilePic[0]) : null;
-            const civilIdCardFrontUrl = req.files.civilIdCardFront ? await uploadFile(req.files.civilIdCardFront[0]) : null;
-            const civilIdCardBackUrl = req.files.civilIdCardBack ? await uploadFile(req.files.civilIdCardBack[0]) : null;
-            const driverLicenseUrl = req.files.driverLicense ? await uploadFile(req.files.driverLicense[0]) : null;
-            const vehicleLicenseUrl = req.files.vehicleLicense ? await uploadFile(req.files.vehicleLicense[0]) : null;
-            const policeClearanceCertificateUrl = req.files.policeClearanceCertificate ? await uploadFile(req.files.policeClearanceCertificate[0]) : null;
+            const uploadPromises = {
+                profilePictureUrl: req.files.profilePic ? uploadFile(req.files.profilePic[0]) : null,
+                civilIdCardFrontUrl: req.files.civilIdCardFront ? uploadFile(req.files.civilIdCardFront[0]) : null,
+                civilIdCardBackUrl: req.files.civilIdCardBack ? uploadFile(req.files.civilIdCardBack[0]) : null,
+                driverLicenseUrl: req.files.driverLicense ? uploadFile(req.files.driverLicense[0]) : null,
+                vehicleLicenseUrl: req.files.vehicleLicense ? uploadFile(req.files.vehicleLicense[0]) : null,
+                policeClearanceCertificateUrl: req.files.policeClearanceCertificate ? uploadFile(req.files.policeClearanceCertificate[0]) : null,
+            };
 
-            // Ensure all files are uploaded
-            // if (!civilIdCardFrontUrl || !civilIdCardBackUrl || !driverLicenseUrl || !vehicleLicenseUrl || !policeClearanceCertificateUrl) {
-            //     return res.status(400).json({ error: 'All required documents must be uploaded.' });
-            // }
+            // Wait for all uploads to finish
+            const uploadedFiles = await Promise.all(Object.values(uploadPromises));
+            const fileKeys = Object.keys(uploadPromises);
+            const uploadedData = Object.fromEntries(fileKeys.map((key, index) => [key, uploadedFiles[index]]));
 
-            // Create the car
+            // Ensure all required files are uploaded
+            if (
+                !uploadedData.civilIdCardFrontUrl ||
+                !uploadedData.civilIdCardBackUrl ||
+                !uploadedData.driverLicenseUrl ||
+                !uploadedData.vehicleLicenseUrl ||
+                !uploadedData.policeClearanceCertificateUrl
+            ) {
+                return res.status(400).json({ error: "All required documents must be uploaded." });
+            }
+
+            // Create car document
             const car = new Car({
                 car_palette,
                 car_type,
@@ -72,32 +96,35 @@ exports.signup = [
                 insuranceType,
                 carOwnership,
             });
+
             const createdCar = await car.save();
 
-            // Create the captain and associate the car ID
+            // Create captain document
             const captain = new Captain({
                 name,
                 email: lowercaseEmail,
                 password,
                 phone,
                 shift,
-                profilePicture: profilePictureUrl, // Save the picture URL
+                profilePicture: uploadedData.profilePictureUrl,
                 car: createdCar._id,
-                civilIdCardFront: civilIdCardFrontUrl,
-                civilIdCardBack: civilIdCardBackUrl,
-                driverLicense: driverLicenseUrl,
-                vehicleLicense: vehicleLicenseUrl,
-                policeClearanceCertificate: policeClearanceCertificateUrl,
+                civilIdCardFront: uploadedData.civilIdCardFrontUrl,
+                civilIdCardBack: uploadedData.civilIdCardBackUrl,
+                driverLicense: uploadedData.driverLicenseUrl,
+                vehicleLicense: uploadedData.vehicleLicenseUrl,
+                policeClearanceCertificate: uploadedData.policeClearanceCertificateUrl,
             });
+
             await captain.save();
 
             res.status(201).json({
-                message: 'Captain created successfully with car and documents',
+                message: "Captain created successfully with car and documents",
                 captain,
                 car: createdCar,
             });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            console.error("Signup error:", error);
+            res.status(500).json({ error: "Internal server error. Please try again." });
         }
     }),
 ];
