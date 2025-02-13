@@ -4,6 +4,7 @@ const carSchema = new mongoose.Schema({
     car_palette: {
         type: String,
         required: true,
+        unique: true,
     },
     car_type: {
         type: String,

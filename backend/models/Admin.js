@@ -18,7 +18,12 @@ const adminSchema = new mongoose.Schema({
     phone: {
         type: String,
         required: true,
-    }
+    },
+    role: {
+        type: String,
+        enum: ['Admin', 'Accountant', 'Dispatcher','HR', 'StoreKeeper', 'SupportTeam'],
+        required: true,
+    },
 }, { timestamps: true });
 
 adminSchema.pre('save', async function (next) {

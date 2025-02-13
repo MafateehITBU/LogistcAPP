@@ -20,6 +20,9 @@ router.get('/:id', captainController.getCaptain);
 // Update a captain by ID
 router.put('/update', captainAuth, captainController.updateCaptain);
 
+// Assign a car
+router.put('/assign-car', captainController.assignCar);
+
 // Update account Status
 router.put('/:id/updateStatus', adminAuth, captainController.updateAccountStatus);
 

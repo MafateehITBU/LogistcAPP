@@ -4,51 +4,37 @@ import { Dropdown } from "react-bootstrap";
 import Swal from "sweetalert2";
 import axiosInstance from "../axiosConfig";
 
-const Order = () => {
+const FastOrder = () => {
     const [orders, setOrders] = useState([]);
     const [filterText, setFilterText] = useState("");
     const [selectedItems, setSelectedItems] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [procurement, setProcurement] = useState([]);
-    const [delivery, setDelivery] = useState([]);
+    const [captains, setCaptains] = useState([]);
 
     useEffect(() => {
         fetchOrders();
-        fetchProcurement();
-        fetchDelivery();
+        fetchCaptains();
     }, []);
 
     // Fetch orders data
     const fetchOrders = async () => {
         try {
             const response = await axiosInstance.get("/order/all");
-            setOrders(response.data.orders);
+            const filteredOrders = response.data.orders.filter(order => order.orderType === "Normal");
+            setOrders(filteredOrders);
         } catch (error) {
             console.error("Error fetching orders data:", error);
             Swal.fire("Error", "Failed to fetch orders data.", "error");
         }
     };
 
-    // Fetch procurement officers
-    const fetchProcurement = async () => {
+    // Fetch captains data
+    const fetchCaptains = async () => {
         try {
             const response = await axiosInstance.get("/fulltimeCaptain");
-            const procurementOfficers = response.data.filter(captain => captain.role === "procurement");
-            setProcurement(procurementOfficers);
+            setCaptains(response.data);
         } catch (error) {
-            console.error("Error fetching procurement officers data:", error);
-            Swal.fire("Error", "Failed to fetch procurement officers data.", "error");
-        }
-    };
-
-    // Fetch delivery captains
-    const fetchDelivery = async () => {
-        try {
-            const response = await axiosInstance.get("/freelanceCaptain/delivery");
-            setDelivery(response.data.deliveryCaptains);
-        } catch (error) {
-            console.error("Error fetching delivery captains data:", error);
-            Swal.fire("Error", "Failed to fetch delivery captains data.", "error");
+            console.error("Error fetching captains:", error);
         }
     };
 
@@ -73,29 +59,7 @@ const Order = () => {
             timerProgressBar: true,
         });
     };
-
-    const handleAddProcurement = async (orderId, procurementOfficerId) => {
-        try {
-            await axiosInstance.put(`/order/${orderId}/assign-captains`, {
-                procurementOfficer: procurementOfficerId
-            });
-            fetchOrders();
-            Swal.fire({
-                icon: "success",
-                title: "Success!",
-                text: "Procurement officer assigned successfully.",
-                toast: true,
-                position: "bottom-end",
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true,
-            });
-        } catch (error) {
-            console.error("Error assigning procurement officer:", error);
-            Swal.fire("Error", "Failed to assign procurement officer.", "error");
-        }
-    };
-
+    
     const handleAddDelivery = async (orderId, deliveryCaptainId) => {
         try {
             await axiosInstance.put(`/order/${orderId}/assign-captains`, {
@@ -145,40 +109,16 @@ const Order = () => {
             sortable: true,
         },
         {
-            name: "Procurement",
-            cell: (row) => {
-                const assignedProcurement = procurement.find(officer => officer._id === row.procurementOfficer);
-                return (
-                    <Dropdown>
-                        <Dropdown.Toggle variant="light" className="p-0">
-                            {assignedProcurement ? <span className="badge bg-success"> {assignedProcurement.name}</span> : <span className="badge bg-danger">"Not assigned"</span>}
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                            {procurement.map((officer) => (
-                                <Dropdown.Item
-                                    key={officer._id}
-                                    onClick={() => handleAddProcurement(row._id, officer._id)}
-                                >
-                                    {officer.name}
-                                </Dropdown.Item>
-                            ))}
-                        </Dropdown.Menu>
-                    </Dropdown>
-                );
-            },
-            sortable: true,
-        },
-        {
             name: "Delivery",
             cell: (row) => {
-                const assignedDelivery = delivery.find(captain => captain._id === row.deliveryCaptain);
+                const assignedDelivery = captains.find(captain => captain._id === row.deliveryCaptain);
                 return (
                     <Dropdown>
                         <Dropdown.Toggle variant="light" className="p-0">
                             {assignedDelivery ? <span className="badge bg-success"> {assignedDelivery.name}</span> : <span className="badge bg-danger">Not assigned</span>}
                         </Dropdown.Toggle>
                         <Dropdown.Menu>
-                            {delivery.map((captain) => (
+                            {captains.map((captain) => (
                                 <Dropdown.Item
                                     key={captain._id}
                                     onClick={() => handleAddDelivery(row._id, captain._id)}
@@ -199,17 +139,17 @@ const Order = () => {
                     <Dropdown.Toggle variant="light" className="p-0">
                         <span
                             className={`badge ${row.status === "Delivered" ? "bg-success" :
-                                    row.status === "Pending" ? "bg-warning" :
-                                        row.status === "Refused" ? "bg-danger" :
-                                            row.status === "OutToDelivery" ? "bg-info" :
-                                                "bg-secondary"
+                                row.status === "Pending" ? "bg-warning" :
+                                    row.status === "Refused" ? "bg-danger" :
+                                        row.status === "OutToDelivery" ? "bg-info" :
+                                            "bg-secondary"
                                 }`}
                         >
                             {row.status}
                         </span>
                     </Dropdown.Toggle>
                     <Dropdown.Menu>
-                        {["InStore", "OutToDelivery"].map((status) => (
+                        {["OutToDelivery"].map((status) => (
                             <Dropdown.Item
                                 key={status}
                                 onClick={() => handleUpdateStatus(row._id, status)}
@@ -246,9 +186,7 @@ const Order = () => {
         order.district.toLowerCase().includes(filterText.toLowerCase()) ||
         order.area.toLowerCase().includes(filterText.toLowerCase()) ||
         order.street.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.status.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.procurementOfficer.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.deliveryCaptain.toLowerCase().includes(filterText.toLowerCase())
+        order.status.toLowerCase().includes(filterText.toLowerCase()) 
     );
 
     return (
@@ -258,7 +196,7 @@ const Order = () => {
                     <div className="card">
                         <div className="card-header">
                             <div className="d-flex align-items-center justify-content-between">
-                                <h4 className="card-title">Order Details</h4>
+                                <h4 className="card-title">Fast Order Details</h4>
                                 <input
                                     type="text"
                                     className="form-control mx-3"
@@ -343,4 +281,4 @@ const Order = () => {
     );
 };
 
-export default Order;
+export default FastOrder;

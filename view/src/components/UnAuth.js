@@ -1,4 +1,12 @@
+import React from 'react';
+import Cookies from 'js-cookie';
+
 const UnAuth = () => {
+    const handleLoginRedirect = () => {
+        // Remove jwt and role from the cookies
+        Cookies.remove('jwt');
+        Cookies.remove('adminRole');
+    };
 
     return (
         <div className='unAuth-container'>
@@ -13,7 +21,7 @@ const UnAuth = () => {
                     <span className="msg">can't let <span>you</span> in.</span>
                     <span className="support">
                         <span>unexpected?</span>
-                        <a href="/login">Login</a>
+                        <a href="/login" onClick={handleLoginRedirect}>Login</a>
                     </span>
                 </div>
                 <div className="lock"></div>

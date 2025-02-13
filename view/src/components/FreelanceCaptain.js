@@ -9,9 +9,11 @@ const FreelanceCaptain = () => {
     const [filterText, setFilterText] = useState("");
     const [selectedImages, setSelectedImages] = useState([]); // Store multiple images
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [cars, setCars] = useState([]);
 
     useEffect(() => {
         fetchCaptains();
+        fetchCars();
     }, []);
 
     const fetchCaptains = async () => {
@@ -20,6 +22,15 @@ const FreelanceCaptain = () => {
             setCaptains(response.data);
         } catch (error) {
             console.error("Error fetching captains:", error);
+        }
+    };
+
+    const fetchCars = async () => {
+        try {
+            const response = await axiosInstance.get("/car");
+            setCars(response.data);
+        } catch (error) {
+            console.error("Error fetching cars:", error);
         }
     };
 
@@ -133,6 +144,13 @@ const FreelanceCaptain = () => {
                     View
                 </button>
             ),
+        },
+        {
+            name: "Car",
+            cell : (row) => {
+                const assignedCar = cars.find(car => car._id === row.car);
+                return ( <span className="badge bg-success">{assignedCar.car_type} - {assignedCar.car_palette}</span>);
+            }
         },
         {
             name: "Status",

@@ -2,12 +2,16 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-const Captain = require('../models/FreelanceCaptain');
+const Captain = require('../models/freelanceCaptain');
+const FulltimeCaptain = require('../models/FulltimeCaptain');
 const Car = require('../models/Car');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const fs = require('fs/promises'); // Use async fs functions
 const path = require('path');
+const twilio = require('twilio');
+const twilioClient = new twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 
 // Cloudinary configuration
 cloudinary.config({
@@ -50,7 +54,7 @@ const uploadFile = async (file) => {
 
         const result = await cloudinary.uploader.upload(file.path);
 
-        
+
         try {
             await fs.access(file.path); // Check if file exists
             await fs.unlink(file.path); // Delete file safely
@@ -151,7 +155,6 @@ exports.signup = [
     }),
 ];
 
-
 // Sign-in controller
 exports.signin = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
@@ -162,8 +165,15 @@ exports.signin = asyncHandler(async (req, res) => {
     const isMatch = await bcrypt.compare(password, captain.password);
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
-    if (captain.accountStatus !== 'approved') {
-        return res.status(403).json({ error: 'Captain profile is not approved yet!' });
+    // Check the account status
+    const accountStatus = captain.accountStatus;
+    switch (accountStatus) {
+        case 'rejected':
+            return res.status(403).json({ error: 'Captain profile is rejected!' });
+        case 'incomplete':
+            return res.status(403).json({ error: 'Captain profile is incomplete! please re-upload the documents needed' });
+        case 'pending':
+            return res.status(403).json({ error: 'Captain profile is pending approval!' });
     }
 
     const token = jwt.sign({ captainId: captain.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
@@ -222,40 +232,72 @@ exports.updateCaptain = [
     }),
 ];
 
+// Helper function to write the phone number with the international format
+const formatPhoneNumber = (phone) => {
+    return `+962${phone.slice(1)}`;
+};
+
 // Update account status by Admin
 exports.updateAccountStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { accountStatus } = req.body;
 
-        // Allowed status updates for Admin
         const allowedStatuses = ['pending', 'approved', 'incomplete', 'rejected'];
 
-        // Check if the provided status is valid
         if (!allowedStatuses.includes(accountStatus)) {
             return res.status(400).json({
                 message: `Invalid status. Admin can only change status to ${allowedStatuses.join(', ')}`
             });
         }
 
-        // Find the captain by ID
         const captain = await Captain.findById(id);
         if (!captain) {
-            return res.status(404).json({ message: 'captain not found' });
+            return res.status(404).json({ message: 'Captain not found' });
         }
 
-        // Update the status
         captain.accountStatus = accountStatus;
         await captain.save();
 
+        const formattedPhone = formatPhoneNumber(captain.phone);
+
+        // Send SMS if status is set to "incomplete"
+        if (accountStatus === 'incomplete') {
+            // Generate JWT token for uploading docs
+            const token = jwt.sign({ captainId: captain.id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+
+            // Create the upload link
+            const uploadLink = `https://google.com`; // Change this to where the captain will go
+
+            const messageBody = `Please re-upload your docs using this link: ${uploadLink}`;
+
+            // Send SMS with the link (no token in the URL)
+            twilioClient.messages
+                .create({
+                    body: messageBody,
+                    from: TWILIO_PHONE_NUMBER,
+                    to: formattedPhone
+                })
+                .then(() => console.log(`SMS sent to ${captain.phone}`))
+                .catch(err => console.error('Error sending SMS:', err));
+
+            // After sending the SMS, set the status to "pending"
+            captain.accountStatus = 'pending';
+            await captain.save();
+
+            // Set the token in the response header extract it in the front and re-send it with the re-upload
+            res.setHeader('Authorization', `Bearer ${token}`);
+        }
+
         res.status(200).json({
-            message: 'captain status updated successfully',
+            message: 'Captain status updated successfully',
             captain
         });
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
+
 // Delete captain controller
 exports.deleteCaptain = asyncHandler(async (req, res) => {
     const { id } = req.params;
@@ -268,7 +310,7 @@ exports.deleteCaptain = asyncHandler(async (req, res) => {
 exports.getDeliveryCaptains = asyncHandler(async (req, res) => {
     try {
         const freelanceCaptains = await Captain.find();
-        const fulltimeCaptains = await FulltimeCaptin.find({ role: "delivery" });
+        const fulltimeCaptains = await FulltimeCaptain.find({ role: "delivery" });
 
         // Combine both arrays
         const allDeliveryCaptains = [...freelanceCaptains, ...fulltimeCaptains];
@@ -281,3 +323,68 @@ exports.getDeliveryCaptains = asyncHandler(async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// Re-upload the images
+exports.reuploadDocs = [
+    upload.fields([
+        { name: 'civilIdCardFront', maxCount: 1 },
+        { name: 'civilIdCardBack', maxCount: 1 },
+        { name: 'driverLicense', maxCount: 1 },
+        { name: 'vehicleLicense', maxCount: 1 },
+        { name: 'policeClearanceCertificate', maxCount: 1 },
+    ]),
+    asyncHandler(async (req, res) => {
+        try {
+            const captainId = req.captain._id;
+            const captain = await Captain.findById(captainId);
+            if (!captain) {
+                return res.status(404).json({ error: "Captain not found" });
+            }
+
+            if (!req.files || Object.keys(req.files).length === 0) {
+                return res.status(400).json({ error: "No files uploaded." });
+            }
+
+            const uploadPromises = {
+                civilIdCardFrontUrl: req.files.civilIdCardFront ? uploadFile(req.files.civilIdCardFront[0]) : null,
+                civilIdCardBackUrl: req.files.civilIdCardBack ? uploadFile(req.files.civilIdCardBack[0]) : null,
+                driverLicenseUrl: req.files.driverLicense ? uploadFile(req.files.driverLicense[0]) : null,
+                vehicleLicenseUrl: req.files.vehicleLicense ? uploadFile(req.files.vehicleLicense[0]) : null,
+                policeClearanceCertificateUrl: req.files.policeClearanceCertificate ? uploadFile(req.files.policeClearanceCertificate[0]) : null,
+            };
+
+            // Wait for all uploads to finish
+            const uploadedFiles = await Promise.all(Object.values(uploadPromises));
+            const fileKeys = Object.keys(uploadPromises);
+            const uploadedData = Object.fromEntries(fileKeys.map((key, index) => [key, uploadedFiles[index]]));
+
+            // Update only the fields that were uploaded
+            Object.entries(uploadedData).forEach(([key, value]) => {
+                if (value) captain[key.replace('Url', '')] = value; // Remove "Url" from key name to match DB fields
+            });
+
+            // Mark status as incomplete if any document is missing
+            if (
+                !uploadedData.civilIdCardFrontUrl ||
+                !uploadedData.civilIdCardBackUrl ||
+                !uploadedData.driverLicenseUrl ||
+                !uploadedData.vehicleLicenseUrl ||
+                !uploadedData.policeClearanceCertificateUrl
+            ) {
+                captain.accountStatus = 'incomplete';
+            } else {
+                captain.accountStatus = 'pending'; // Reset to pending for review
+            }
+
+            await captain.save();
+
+            res.status(200).json({
+                message: "Documents re-uploaded successfully",
+                captain,
+            });
+        } catch (error) {
+            console.error("Reupload Docs Error:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    }),
+];

@@ -23,6 +23,12 @@ const userSchema = new mongoose.Schema({
   inventory: {
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Inventory',
+  },
+  otp: {
+      type: String,
+  },
+  otpExpiry: {
+      type: Date,
   }
 }, { timestamps: true });
 

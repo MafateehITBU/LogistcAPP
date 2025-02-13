@@ -70,6 +70,12 @@ const freelanceCaptainSchema = mongoose.Schema({
         type: String,
         default: 'pending',
         enum: ['pending', 'approved', 'incomplete', 'rejected']
+    },
+    otp: {
+        type: String,
+    },
+    otpExpiry: {
+        type: Date,
     }
 }, { timestamps: true });
 

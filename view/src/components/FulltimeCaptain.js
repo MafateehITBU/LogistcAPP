@@ -10,9 +10,11 @@ const FulltimeCaptain = () => {
     const [selectedCaptain, setSelectedCaptain] = useState(null);
     const [selectedImage, setSelectedImage] = useState(null); // To store the clicked image
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [cars, setCars] = useState([]);
 
     useEffect(() => {
         fetchCaptains();
+        fetchCars();
     }, []);
 
     const fetchCaptains = async () => {
@@ -21,6 +23,15 @@ const FulltimeCaptain = () => {
             setCaptains(response.data);
         } catch (error) {
             console.error("Error fetching captains:", error);
+        }
+    };
+
+    const fetchCars = async () => {
+        try {
+            const response = await axiosInstance.get("/car");
+            setCars(response.data);
+        } catch (error) {
+            console.error("Error fetching cars:", error);
         }
     };
 
@@ -72,6 +83,29 @@ const FulltimeCaptain = () => {
             timer: 3000,
             timerProgressBar: true,
         });
+    };
+
+    const handleAddCar = async (captainId, carId) => {
+        try {
+            await axiosInstance.put(`/fulltimeCaptain/assign-car`, {
+                carId: carId,
+                captainId: captainId
+            });
+            fetchCaptains();
+            Swal.fire({
+                icon: "success",
+                title: "Success!",
+                text: "Car assigned successfully.",
+                toast: true,
+                position: "bottom-end",
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+        } catch (error) {
+            console.error("Error assigning car:", error);
+            Swal.fire("Error", "Failed to assign car.", "error");
+        }
     };
 
     const columns = [
@@ -137,6 +171,33 @@ const FulltimeCaptain = () => {
             sortable: true,
         },
         {
+            name: "Car",
+            cell: (row) => {
+                const assignedCar = cars.find(car => car._id === row.car_id);
+                return (
+                    <Dropdown>
+                        <Dropdown.Toggle variant="light" className="p-0">
+                            {assignedCar ? (
+                                <span className="badge bg-success">{assignedCar.car_type} - {assignedCar.car_palette}</span>
+                            ) : (
+                                <span className="badge bg-danger">Not assigned</span>
+                            )}
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu style={{ maxHeight: "150px", overflowY: "auto" }}>
+                            {cars.map((car) => (
+                                <Dropdown.Item
+                                    key={car._id}
+                                    onClick={() => handleAddCar(row._id, car._id)}
+                                >
+                                    {car.car_type} - {car.car_palette}
+                                </Dropdown.Item>
+                            ))}
+                        </Dropdown.Menu>
+                    </Dropdown>
+                );
+            },
+        },
+        {
             name: "Status",
             cell: (row) => (
                 <Dropdown>
@@ -188,7 +249,7 @@ const FulltimeCaptain = () => {
             captain.phone?.toLowerCase().includes(filterText.toLowerCase()) ||
             captain.contractType?.toLowerCase().includes(filterText.toLowerCase()) ||
             captain.role?.toLowerCase().includes(filterText.toLowerCase()) ||
-            captain.walletNo?.toLowerCase().includes(filterText.toLowerCase()) 
+            captain.walletNo?.toLowerCase().includes(filterText.toLowerCase())
         );
     });
 

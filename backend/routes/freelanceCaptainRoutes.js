@@ -23,6 +23,9 @@ router.get('/:id', captainController.getCaptain);
 // Update a captain by ID
 router.put('/update', captainAuth, captainController.updateCaptain);
 
+// Re-upload the docs
+router.put('/reupload', captainAuth, captainController.reuploadDocs);
+
 // Update account Status
 router.put('/:id/updateStatus', adminAuth, captainController.updateAccountStatus);
 

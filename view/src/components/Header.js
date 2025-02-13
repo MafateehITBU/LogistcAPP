@@ -1,5 +1,14 @@
+import React from 'react';
+import Cookies from 'js-cookie';
 import Notification from "./Notification";
+
 const Header = () => {
+    const handleLoginRedirect = () => {
+        // Remove jwt and role from the cookies
+        Cookies.remove('jwt');
+        Cookies.remove('adminRole');
+    };
+
     return (
         <div className='main-header'>
             <nav
@@ -124,7 +133,7 @@ const Header = () => {
                                 </li>
                             </ul>
                         </li>
-                        <Notification />    
+                        <Notification />
                         <li className="nav-item topbar-icon dropdown hidden-caret">
                             <a
                                 className="nav-link"
@@ -253,7 +262,7 @@ const Header = () => {
                                         <div className="dropdown-divider"></div>
                                         <a className="dropdown-item" href="#">Account Setting</a>
                                         <div className="dropdown-divider"></div>
-                                        <a className="dropdown-item" href="#">Logout</a>
+                                        <a className="dropdown-item" href="/login" onClick={handleLoginRedirect}>Logout</a>
                                     </li>
                                 </div>
                             </ul>

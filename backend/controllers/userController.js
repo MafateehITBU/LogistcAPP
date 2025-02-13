@@ -7,6 +7,7 @@ const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 // Cloudinary configuration
 cloudinary.config({
@@ -181,3 +182,83 @@ exports.deleteUser = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// Configure Nodemailer transporter
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
+    }
+});
+
+// Send reset password OTP
+exports.sendOTP = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    const lowercaseEmail = email.toLowerCase();
+    const user = await User.findOne({ email: lowercaseEmail });
+
+    if (!user) {
+        return res.status(404).json({ error: 'user not found' });
+    }
+
+    // Generate OTP (6-digit)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Set OTP expiration time (3 minutes from now)
+    const otpExpiry = new Date();
+    otpExpiry.setMinutes(otpExpiry.getMinutes() + 3);
+
+    // Save OTP and expiry time in the database
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+    await user.save();
+
+    // Send OTP via email
+    const mailOptions = {
+        from: `"Nashmi Riders" <${process.env.EMAIL_USER}>`,
+        to: lowercaseEmail,
+        subject: 'Password Reset OTP',
+        text: `Your OTP for resetting your password is: ${otp}. This OTP is valid for 10 minutes.`
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        res.status(200).json({ message: 'OTP sent successfully' });
+    } catch (error) {
+        console.error('Error sending OTP email:', error);
+        res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
+    }
+});
+
+// confirm OTP
+exports.confirmOTP = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+    const lowercaseEmail = email.toLowerCase();
+    const user = await User.findOne({ email: lowercaseEmail });
+
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.otp !== otp || new Date() > User.otpExpiry) {
+        return res.status(401).json({ error: 'Invalid OTP' });
+    }
+
+    res.status(200).json({ message: "OTP correct!" });
+});
+
+// Reset password
+exports.resetPassword = asyncHandler(async (req, res) => {
+    const { email, newPassword } = req.body;
+    const lowercaseEmail = email.toLowerCase();
+    const user = await User.findOne({ email: lowercaseEmail });
+
+    if (!user) {
+        return res.status(404).json({ error: 'user not found' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    res.status(200).json({ message: "Password reset successfully" });
+});

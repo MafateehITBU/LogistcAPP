@@ -23,6 +23,11 @@ const Login = () => {
                 expires: 1, // Expires in 1 day
             });
 
+            // Save the role in a cookie
+            Cookies.set("adminRole", response.data.role, {
+                expires: 1, // Expires in 1 day
+            });
+
             // Redirect to home page
             navigate("/");
         } catch (err) {

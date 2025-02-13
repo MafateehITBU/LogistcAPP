@@ -7,9 +7,6 @@ const timeAgo = (date) => {
     const now = new Date();
     const createdAt = parseISO(date);
 
-    console.log("CreatedAt: ", createdAt);
-    console.log("Now: ", now);
-
     if (isNaN(createdAt)) {
         return "Invalid date";
     }
@@ -35,16 +32,25 @@ const Notification = () => {
     const [notifications, setNotifications] = useState([]);
     const [count, setCount] = useState(0);
 
+    // Load notifications from localStorage on mount
+    useEffect(() => {
+        const storedNotifications = JSON.parse(localStorage.getItem("notifications")) || [];
+        setNotifications(storedNotifications);
+        setCount(storedNotifications.length);
+    }, []);
+
     useEffect(() => {
         socket.on("newOrder", (order) => {
-            setNotifications((prev) => [order, ...prev]);
-            setCount((prev) => prev + 1);
+            const updatedNotifications = [order, ...notifications];
+            setNotifications(updatedNotifications);
+            setCount(updatedNotifications.length);
+            localStorage.setItem("notifications", JSON.stringify(updatedNotifications)); // Save to localStorage
         });
 
         return () => {
             socket.off("newOrder");
         };
-    }, []);
+    }, [notifications]); // Dependency array ensures updates happen correctly
 
     // Update timeAgo dynamically every second
     useEffect(() => {
@@ -52,13 +58,21 @@ const Notification = () => {
             setNotifications((prevNotifications) =>
                 prevNotifications.map((notif) => ({
                     ...notif,
-                    timeAgo: timeAgo(notif.createdAt), // Recalculate time ago
+                    timeAgo: timeAgo(notif.createdAt),
                 }))
             );
-        }, 1000); // Update every second
+        }, 1000);
 
-        return () => clearInterval(intervalId); // Cleanup on component unmount
+        return () => clearInterval(intervalId);
     }, []);
+
+    // Function to remove a notification when clicked
+    const handleNotificationClick = (index) => {
+        const updatedNotifications = notifications.filter((_, i) => i !== index);
+        setNotifications(updatedNotifications);
+        setCount(updatedNotifications.length);
+        localStorage.setItem("notifications", JSON.stringify(updatedNotifications)); // Update localStorage
+    };
 
     return (
         <li className="nav-item topbar-icon dropdown hidden-caret">
@@ -87,14 +101,16 @@ const Notification = () => {
                     <div className="notif-scroll scrollbar-outer">
                         <div className="notif-center">
                             {notifications.map((notif, index) => (
-                                <a href="/orders" key={index}>
+                                <a
+                                    href="/orders"
+                                    key={index}
+                                    onClick={() => handleNotificationClick(index)}
+                                >
                                     <div className="notif-icon notif-primary">
                                         <i className="fa fa-shopping-cart"></i>
                                     </div>
                                     <div className="notif-content">
-                                        <span className="block">
-                                            {notif.message}
-                                        </span>
+                                        <span className="block">{notif.message}</span>
                                         <span className="time">
                                             {notif.timeAgo || timeAgo(notif.createdAt)}
                                         </span>

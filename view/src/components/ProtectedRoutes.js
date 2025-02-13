@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 
-function ProtectedRoute({ component: Component, roleRequired, ...rest }) {
+function ProtectedRoute({ component: Component, rolesRequired, ...rest }) {
     const token = Cookies.get('jwt');
 
     if (!token) {
@@ -12,13 +12,14 @@ function ProtectedRoute({ component: Component, roleRequired, ...rest }) {
 
     try {
         const decodedToken = jwtDecode(token);
+        const adminRole = decodedToken.role.trim();  // Ensure role has no extra spaces
 
-        if (decodedToken.role !== roleRequired) {
-            return <Navigate to="/unAuth" replace />; // Redirect to UnAuth if role doesn't match
+        if (!rolesRequired.map(role => role.trim()).includes(adminRole)) {
+            return <Navigate to="/unAuth" replace />;
         }
     } catch (error) {
         console.error("Invalid token:", error);
-        return <Navigate to="/login" replace />; // Redirect to login if token is invalid
+        return <Navigate to="/login" replace />; // Redirect if token is invalid
     }
 
     return <Component {...rest} />;

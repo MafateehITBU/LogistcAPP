@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const Captain = require('../models/FulltimeCaptain');
+const Car = require ('../models/Car');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const fs = require('fs');
@@ -126,6 +127,17 @@ exports.updateCaptain = [
     }),
 ];
 
+// Assign Car by Admin
+exports.assignCar = asyncHandler(async (req, res) => {
+    const { carId, captainId } = req.body;
+    const car = await Car.findById(carId);
+    const captain = await Captain.findById(captainId);
+    if (!car || !captain) return res.status(404).json({ error: 'Could not fid the captain or car!' });
+    captain.car_id = car._id;
+    await captain.save();
+    res.status(200).json({ message: 'Car assigned to captain successfully' });
+});
+    
 // Update account status by Admin
 exports.updateAccountStatus = async (req, res) => {
     try {
