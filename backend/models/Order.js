@@ -9,7 +9,7 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User', 
         required: true 
-    }, // The user who placed the order
+    }, 
     items: [
         {
             item: {
@@ -52,7 +52,7 @@ const orderSchema = new mongoose.Schema({
     status: { 
         type: String, 
         required: true, 
-        enum: ['Pending', 'InStore', 'OutToDelivery', 'Delivered', 'Refused'], 
+        enum: ['Pending', 'InStore', 'OutToDelivery', 'Delivered', 'Refused', 'Postponed'], 
         default: 'Pending' 
     },
     orderType: { 
@@ -60,7 +60,7 @@ const orderSchema = new mongoose.Schema({
         required: true, 
         enum: ['Normal', 'Fast'], 
         default: 'Normal' 
-    }, // New order type field
+    },
     refusal: {
         description: { type: String },
         type: { 
@@ -68,9 +68,23 @@ const orderSchema = new mongoose.Schema({
             enum: ['NoResponse', 'Wrong Location', 'Partially', 'Ignore'] 
         }
     }, 
+    paymentStatus: {
+        type: String,
+        required: true,
+        enum: ['Unpaid', 'Paid'],
+        default: 'Unpaid'
+    },
     notes: {
         type: String, 
         required: false
+    },
+    preferredTime: { 
+        type: String,
+        required: false
+    }, // New field for preferred delivery time
+    postponedDate: { 
+        type: Date, 
+        required: function () { return this.status === 'Postponed'; } 
     },
     procurementOfficer: { 
         type: mongoose.Schema.Types.ObjectId, 
@@ -92,6 +106,10 @@ const orderSchema = new mongoose.Schema({
 orderSchema.pre('save', async function (next) {
     try {
         let total = 0;
+
+        if (this.status === 'Postponed' && !this.postponedDate) {
+            return next(new Error('Postponed date is required when the order is postponed'));
+        }
 
         if (this.isNew) {
             for (const item of this.items) {

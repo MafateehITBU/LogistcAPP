@@ -84,13 +84,34 @@
         }
     });
     
+    //Create Order : User Order Creation
     const createOrder = asyncHandler(async (req, res) => {
         try {
-            const { items, city, district, area, street, orderType = 'Normal' } = req.body;
+            const { 
+                items, 
+                city, 
+                district, 
+                area, 
+                street, 
+                orderType = 'Normal', 
+                preferredTime, 
+                status = 'Pending', 
+                postponedDate 
+            } = req.body;
     
             // Validate orderType
             if (!['Normal', 'Fast'].includes(orderType)) {
                 return res.status(400).json({ message: 'Invalid order type. Allowed values: Normal, Fast' });
+            }
+    
+            // Validate status
+            if (!['Pending', 'InStore', 'OutToDelivery', 'Delivered', 'Refused', 'Postponed'].includes(status)) {
+                return res.status(400).json({ message: 'Invalid order status.' });
+            }
+    
+            // If order is postponed, postponedDate must be provided
+            if (status === 'Postponed' && !postponedDate) {
+                return res.status(400).json({ message: 'Postponed orders must have a postponedDate.' });
             }
     
             // Extract userId from the authenticated user
@@ -118,8 +139,11 @@
                 area,
                 street,
                 totalPrice,
-                status: 'Pending',
-                orderType, // Include order type
+                status,
+                orderType,
+                paymentStatus: 'Unpaid', // Default payment status
+                preferredTime,
+                postponedDate: status === 'Postponed' ? postponedDate : null
             });
     
             // Save the order
@@ -145,34 +169,53 @@
             res.status(400).json({ message: error.message });
         }
     });
-    //Edit Order User
+    
     const editOrderDetails = asyncHandler(async (req, res) => {
         try {
             const { orderId } = req.params;
-            const { city, district, area, street, items } = req.body;
+            const { city, district, area, street, items, orderType, postponedDate, status, paymentStatus, preferredTime } = req.body;
             const userId = req.user._id;
-
+    
             // Fetch the order and ensure it belongs to the authenticated user
             const order = await Order.findById(orderId);
             if (!order) {
                 return res.status(404).json({ message: 'Order not found' });
             }
-
+    
             if (!order.user.equals(userId)) {
                 return res.status(403).json({ message: 'You are not authorized to edit this order' });
             }
-
-            // Allow edits only if the status is 'Pending'
-            if (order.status !== 'Pending') {
-                return res.status(400).json({ message: 'You can only edit orders that are pending' });
+    
+            // Allow edits only if the status is 'Pending' or if updating to 'Postponed'
+            if (order.status !== 'Pending' && !(status === 'Postponed' && order.status !== 'Delivered')) {
+                return res.status(400).json({ message: 'You can only edit pending orders or update status to postponed' });
             }
-
+    
             // Update allowed fields
             if (city) order.city = city;
             if (district) order.district = district;
             if (area) order.area = area;
             if (street) order.street = street;
-
+            if (orderType) order.orderType = orderType;
+            if (preferredTime) order.preferredTime = preferredTime;
+            
+            // Handle postponed status and date validation
+            if (status === 'Postponed') {
+                if (!postponedDate) {
+                    return res.status(400).json({ message: 'Postponed date is required when postponing an order' });
+                }
+                order.status = 'Postponed';
+                order.postponedDate = postponedDate;
+            }
+    
+            // Handle payment status update
+            if (paymentStatus) {
+                if (!['Unpaid', 'Paid'].includes(paymentStatus)) {
+                    return res.status(400).json({ message: 'Invalid payment status' });
+                }
+                order.paymentStatus = paymentStatus;
+            }
+    
             // Handle items if provided
             if (items && Array.isArray(items)) {
                 order.items = items.map(({ itemId, quantity, source }) => ({
@@ -181,16 +224,17 @@
                     source,
                 }));
             }
-
-            // Recalculate totalPrice using the pre-save middleware
+    
+            // Save the updated order and recalculate totalPrice via pre-save middleware
             await order.save();
-
+    
             res.status(200).json({ message: 'Order updated successfully', order });
         } catch (error) {
             console.error('Error updating order:', error.message);
             res.status(400).json({ message: error.message });
         }
     });
+    
 
     //Assign Order to Captains
     const assignCaptains = async (req, res) => {
@@ -285,26 +329,25 @@
             res.status(500).json({ message: 'Server Error', error: error.message });
         }
     };
-
     const changeOrderStatusByCaptain = async (req, res) => {
         try {
             const { orderId } = req.params;
-            const { status, refusalType, notes, updatedItems } = req.body;
-
-            const allowedStatuses = ['Delivered', 'Refused'];
+            const { status, refusalType, notes, updatedItems, postponedDate } = req.body;
+    
+            const allowedStatuses = ['Delivered', 'Refused', 'Postponed'];
             const allowedRefusalTypes = ['NoResponse', 'Wrong Location', 'Partially', 'Ignore'];
-
+    
             if (!allowedStatuses.includes(status)) {
                 return res.status(400).json({
-                    message: `Invalid status. Captain can only set status to Delivered or Refused.`,
+                    message: `Invalid status. Captain can only set status to Delivered, Refused, or Postponed.`,
                 });
             }
-
+    
             const order = await Order.findById(orderId);
             if (!order) {
                 return res.status(404).json({ message: 'Order not found' });
             }
-
+    
             if (status === 'Refused') {
                 if (!allowedRefusalTypes.includes(refusalType)) {
                     return res.status(400).json({
@@ -314,17 +357,24 @@
                 order.refusal.type = refusalType;
                 order.refusal.description = notes || ''; // Store notes inside `refusal.description`
             }
-
+    
             if (status === 'Refused' && refusalType === 'Partially') {
                 if (!updatedItems || !Array.isArray(updatedItems)) {
                     return res.status(400).json({ message: 'For partial refusal, updatedItems array is required' });
                 }
                 order.items = updatedItems;
             }
-
+    
+            if (status === 'Postponed') {
+                if (!postponedDate) {
+                    return res.status(400).json({ message: 'Postponed date is required when postponing an order' });
+                }
+                order.postponedDate = postponedDate;
+            }
+    
             order.status = status;
             await order.save();
-
+    
             res.status(200).json({
                 message: 'Order status updated successfully by captain',
                 order,
@@ -332,7 +382,7 @@
         } catch (error) {
             res.status(500).json({ message: 'Server Error', error: error.message });
         }
-    };
+    };  
 
 
 
