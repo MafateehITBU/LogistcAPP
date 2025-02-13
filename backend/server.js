@@ -15,7 +15,6 @@ const freelanceCaptainRoutes = require('./routes/freelanceCaptainRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const rewardRoutes = require('./routes/rewardRoutes');
-const couponRoutes = require('./routes/couponRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const userItemsRoutes = require('./routes/userItemsRoutes')
 const errorHandler = require('./middlewares/errorHandler');
@@ -24,7 +23,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", // Change if needed
+        origin: "http://localhost:3000",
         methods: ["GET", "POST"]
     }
 });
@@ -63,7 +62,6 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/userItems', userItemsRoutes);
 app.use('/api/ticket', ticketRoutes);
 app.use('/api/reward', rewardRoutes);
-app.use('/api/coupon', couponRoutes);
 app.use('/api/order', orderRoutes);
 app.use(errorHandler);
 

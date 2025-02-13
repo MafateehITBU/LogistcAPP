@@ -21,6 +21,6 @@ router.put("/:id", adminAuth, adminRoleMiddleware('Admin'), rewardController.upd
 router.delete("/:id", adminAuth, adminRoleMiddleware('Admin'), rewardController.deleteReward);
 
 // Redeem a reward
-router.post("/:id/redeem", userAuth, adminRoleMiddleware('Admin'), rewardController.redeemReward);
+router.post("/redeem", userAuth, rewardController.redeemReward);
 
 module.exports = router;

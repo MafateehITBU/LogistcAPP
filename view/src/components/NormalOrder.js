@@ -11,6 +11,8 @@ const NormalOrder = () => {
     const [showModal, setShowModal] = useState(false);
     const [procurement, setProcurement] = useState([]);
     const [delivery, setDelivery] = useState([]);
+    const [selectedAddress, setSelectedAddress] = useState(null);
+    const [showAddressModal, setShowAddressModal] = useState(false);
 
     useEffect(() => {
         fetchOrders();
@@ -51,6 +53,11 @@ const NormalOrder = () => {
             console.error("Error fetching delivery captains data:", error);
             Swal.fire("Error", "Failed to fetch delivery captains data.", "error");
         }
+    };
+
+    const handleViewAddress = (city, district, area, street) => {
+        setSelectedAddress({ city, district, area, street });
+        setShowAddressModal(true);
     };
 
     const handleViewItems = (items) => {
@@ -121,28 +128,31 @@ const NormalOrder = () => {
 
     const columns = [
         {
-            name: "User Name",
+            name: "User",
             selector: (row) => row.user.name,
             sortable: true,
         },
         {
-            name: "City",
-            selector: (row) => row.city,
+            name: "Address",
+            cell: (row) => (
+                <button className="btn btn-primary" onClick={() => handleViewAddress(row.city, row.district, row.area, row.street)}>
+                    View
+                </button>
+            ),
             sortable: true,
         },
         {
-            name: "District",
-            selector: (row) => row.district,
+            name: "Payment",
+            selector: (row) => row.paymentStatus,
             sortable: true,
         },
         {
-            name: "Area",
-            selector: (row) => row.area,
-            sortable: true,
-        },
-        {
-            name: "St.",
-            selector: (row) => row.street,
+            name: "Time",
+            selector: (row) => {
+                if (!row.preferredTime) return "N/A";
+                const date = new Date(row.preferredTime);
+                return isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleString();
+            },
             sortable: true,
         },
         {
@@ -196,31 +206,48 @@ const NormalOrder = () => {
         {
             name: "Status",
             cell: (row) => (
-                <Dropdown>
-                    <Dropdown.Toggle variant="light" className="p-0">
-                        <span
-                            className={`badge ${row.status === "Delivered" ? "bg-success" :
-                                row.status === "Pending" ? "bg-warning" :
-                                    row.status === "Refused" ? "bg-danger" :
-                                        row.status === "OutToDelivery" ? "bg-info" :
-                                            "bg-secondary"
-                                }`}
-                        >
-                            {row.status}
-                        </span>
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                        {["InStore", "OutToDelivery"].map((status) => (
-                            <Dropdown.Item
-                                key={status}
-                                onClick={() => handleUpdateStatus(row._id, status)}
+                <div>
+                    <Dropdown>
+                        <Dropdown.Toggle variant="light" className="p-0">
+                            <span
+                                className={`badge ${row.status === "Delivered" ? "bg-success" :
+                                    row.status === "Pending" ? "bg-warning" :
+                                        row.status === "Refused" ? "bg-danger" :
+                                            row.status === "OutToDelivery" ? "bg-info" :
+                                                row.status === "InStore" ? "bg-primary" :
+                                                    "bg-secondary"
+                                    }`}
                             >
-                                {status}
-                            </Dropdown.Item>
-                        ))}
-                    </Dropdown.Menu>
-                </Dropdown>
+                                {row.status}
+                            </span>
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                            {["InStore", "OutToDelivery"].map((status) => (
+                                <Dropdown.Item
+                                    key={status}
+                                    onClick={() => handleUpdateStatus(row._id, status)}
+                                >
+                                    {status}
+                                </Dropdown.Item>
+                            ))}
+                        </Dropdown.Menu>
+                    </Dropdown>
+
+                    {/* Show postponedDate BELOW the dropdown */}
+                    {row.status === "Postponed" && row.postponedDate && (
+                        <div className="mt-1 text-muted small">
+                            Postponed to: {new Date(row.postponedDate).toLocaleDateString()} -<br />
+                            {new Date(row.postponedDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
+                </div>
+
             ),
+        },
+        {
+            name: "Total Price",
+            selector: (row) => row.totalPrice,
+            sortable: true,
         },
         {
             name: "Order Details",
@@ -247,7 +274,7 @@ const NormalOrder = () => {
         order.district.toLowerCase().includes(filterText.toLowerCase()) ||
         order.area.toLowerCase().includes(filterText.toLowerCase()) ||
         order.street.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.status.toLowerCase().includes(filterText.toLowerCase()) 
+        order.status.toLowerCase().includes(filterText.toLowerCase())
     );
 
     return (
@@ -283,7 +310,7 @@ const NormalOrder = () => {
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Items Modal */}
             {showModal && (
                 <div
                     className="modal fade show d-block"
@@ -333,6 +360,31 @@ const NormalOrder = () => {
                                 >
                                     Close
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Address Modal */}
+            {showAddressModal && selectedAddress && (
+                <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
+                    <div className="modal-dialog" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Address Details</h5>
+                                <button type="button" className="close" onClick={() => setShowAddressModal(false)}>
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                <p><strong>City:</strong> {selectedAddress.city}</p>
+                                <p><strong>District:</strong> {selectedAddress.district}</p>
+                                <p><strong>Area:</strong> {selectedAddress.area}</p>
+                                <p><strong>Street:</strong> {selectedAddress.street}</p>
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={() => setShowAddressModal(false)}>Close</button>
                             </div>
                         </div>
                     </div>
