@@ -207,18 +207,38 @@ const FastOrder = () => {
         },
     };
 
+    const filteredData = orders.filter((order) =>
+        order.user.name.toLowerCase().includes(filterText.toLowerCase()) ||
+        order.city.toLowerCase().includes(filterText.toLowerCase()) ||
+        order.district.toLowerCase().includes(filterText.toLowerCase()) ||
+        order.area.toLowerCase().includes(filterText.toLowerCase()) ||
+        order.street.toLowerCase().includes(filterText.toLowerCase()) ||
+        order.status.toLowerCase().includes(filterText.toLowerCase())
+    );
+
     return (
         <div className="container" style={{ marginTop: "80px" }}>
             <div className="page-inner">
                 <div className="col-md-12">
                     <div className="card">
                         <div className="card-header">
-                            <h4 className="card-title">Fast Order Details</h4>
+                            <div className="d-flex align-items-center justify-content-between">
+                                <h4 className="card-title">Fast Order Details</h4>
+                                <input
+                                    type="text"
+                                    className="form-control mx-3"
+                                    placeholder="Search..."
+                                    style={{ maxWidth: "300px" }}
+                                    value={filterText}
+                                    onChange={(e) => setFilterText(e.target.value)}
+                                />
+
+                            </div>
                         </div>
                         <div className="card-body">
                             <DataTable
                                 columns={columns}
-                                data={orders}
+                                data={filteredData}
                                 pagination
                                 responsive
                                 highlightOnHover

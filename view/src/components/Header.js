@@ -1,8 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import Notification from "./Notification";
+import OrderNotification from "./OrderNotification";
+import TicketNotification from './TicketNotification';
+import axiosInstance from '../axiosConfig';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
+    const [admin, setAdmin] = useState({});
+    const navigate = useNavigate();
+    const adminRole = Cookies.get('adminRole');
+
+    useEffect(() => {
+        fetchAdmin();
+    }, []);
+
+    const fetchAdmin = async () => {
+        try {
+            const response = await axiosInstance.get('/admin/singleAdmin');
+            setAdmin(response.data.adminInfo);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleProfileClick = () => {
+        // Navigate to the profile page and pass admin data as state
+        navigate('/profile', { state: { admin } });
+    };
+
+
     const handleLoginRedirect = () => {
         // Remove jwt and role from the cookies
         Cookies.remove('jwt');
@@ -42,98 +68,15 @@ const Header = () => {
                                 </form>
                             </ul>
                         </li>
-                        <li className="nav-item topbar-icon dropdown hidden-caret">
-                            <a
-                                className="nav-link dropdown-toggle"
-                                href="#"
-                                id="messageDropdown"
-                                role="button"
-                                data-bs-toggle="dropdown"
-                                aria-haspopup="true"
-                                aria-expanded="false"
-                            >
-                                <i className="fa fa-envelope"></i>
-                            </a>
-                            <ul
-                                className="dropdown-menu messages-notif-box animated fadeIn"
-                                aria-labelledby="messageDropdown"
-                            >
-                                <li>
-                                    <div
-                                        className="dropdown-title d-flex justify-content-between align-items-center"
-                                    >
-                                        Messages
-                                        <a href="#" className="small">Mark all as read</a>
-                                    </div>
-                                </li>
-                                <li>
-                                    <div className="message-notif-scroll scrollbar-outer">
-                                        <div className="notif-center">
-                                            <a href="#">
-                                                <div className="notif-img">
-                                                    <img
-                                                        src="/img/jm_denis.jpg"
-                                                        alt="Img Profile"
-                                                    />
-                                                </div>
-                                                <div className="notif-content">
-                                                    <span className="subject">Jimmy Denis</span>
-                                                    <span className="block"> How are you ? </span>
-                                                    <span className="time">5 minutes ago</span>
-                                                </div>
-                                            </a>
-                                            <a href="#">
-                                                <div className="notif-img">
-                                                    <img
-                                                        src="/img/chadengle.jpg"
-                                                        alt="Img Profile"
-                                                    />
-                                                </div>
-                                                <div className="notif-content">
-                                                    <span className="subject">Chad</span>
-                                                    <span className="block"> Ok, Thanks ! </span>
-                                                    <span className="time">12 minutes ago</span>
-                                                </div>
-                                            </a>
-                                            <a href="#">
-                                                <div className="notif-img">
-                                                    <img
-                                                        src="/img/mlane.jpg"
-                                                        alt="Img Profile"
-                                                    />
-                                                </div>
-                                                <div className="notif-content">
-                                                    <span className="subject">Jhon Doe</span>
-                                                    <span className="block">
-                                                        Ready for the meeting today...
-                                                    </span>
-                                                    <span className="time">12 minutes ago</span>
-                                                </div>
-                                            </a>
-                                            <a href="#">
-                                                <div className="notif-img">
-                                                    <img
-                                                        src="/img/talha.jpg"
-                                                        alt="Img Profile"
-                                                    />
-                                                </div>
-                                                <div className="notif-content">
-                                                    <span className="subject">Talha</span>
-                                                    <span className="block"> Hi, Apa Kabar ? </span>
-                                                    <span className="time">17 minutes ago</span>
-                                                </div>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </li>
-                                <li>
-                                    <a className="see-all" href="javascript:void(0);"
-                                    >See all messages<i className="fa fa-angle-right"></i>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        <Notification />
+                        {/* Messages */}
+                        {(adminRole === "Admin" || adminRole === "SupportTeam") && (
+                            <TicketNotification />
+                        )}
+                        {/* Order Notifications */}
+                        {(adminRole === "Admin" || adminRole === "Dispatcher") && (
+                            <OrderNotification />
+                        )}
+                        {/* Quick Actions */}
                         <li className="nav-item topbar-icon dropdown hidden-caret">
                             <a
                                 className="nav-link"
@@ -153,38 +96,10 @@ const Header = () => {
                                         <div className="row m-0">
                                             <a className="col-6 col-md-4 p-0" href="#">
                                                 <div className="quick-actions-item">
-                                                    <div className="avatar-item bg-danger rounded-circle">
-                                                        <i className="far fa-calendar-alt"></i>
-                                                    </div>
-                                                    <span className="text">Calendar</span>
-                                                </div>
-                                            </a>
-                                            <a className="col-6 col-md-4 p-0" href="#">
-                                                <div className="quick-actions-item">
-                                                    <div
-                                                        className="avatar-item bg-warning rounded-circle"
-                                                    >
-                                                        <i className="fas fa-map"></i>
-                                                    </div>
-                                                    <span className="text">Maps</span>
-                                                </div>
-                                            </a>
-                                            <a className="col-6 col-md-4 p-0" href="#">
-                                                <div className="quick-actions-item">
                                                     <div className="avatar-item bg-info rounded-circle">
                                                         <i className="fas fa-file-excel"></i>
                                                     </div>
                                                     <span className="text">Reports</span>
-                                                </div>
-                                            </a>
-                                            <a className="col-6 col-md-4 p-0" href="#">
-                                                <div className="quick-actions-item">
-                                                    <div
-                                                        className="avatar-item bg-success rounded-circle"
-                                                    >
-                                                        <i className="fas fa-envelope"></i>
-                                                    </div>
-                                                    <span className="text">Emails</span>
                                                 </div>
                                             </a>
                                             <a className="col-6 col-md-4 p-0" href="#">
@@ -212,7 +127,7 @@ const Header = () => {
                                 </div>
                             </div>
                         </li>
-
+                        {/* Profile */}
                         <li className="nav-item topbar-user dropdown hidden-caret">
                             <a
                                 className="dropdown-toggle profile-pic"
@@ -229,7 +144,7 @@ const Header = () => {
                                 </div>
                                 <span className="profile-username">
                                     <span className="op-7">Hi,</span>
-                                    <span className="fw-bold">Hizrian</span>
+                                    <span className="fw-bold"> {admin.name} </span>
                                 </span>
                             </a>
                             <ul className="dropdown-menu dropdown-user animated fadeIn">
@@ -244,21 +159,18 @@ const Header = () => {
                                                 />
                                             </div>
                                             <div className="u-text">
-                                                <h4>Hizrian</h4>
-                                                <p className="text-muted">hello@example.com</p>
-                                                <a
-                                                    href="profile.html"
+                                                <h4> {admin.name} </h4>
+                                                <p className="text-muted"> {admin.email} </p>
+                                                <button
                                                     className="btn btn-xs btn-secondary btn-sm"
-                                                >View Profile</a
+                                                    onClick={handleProfileClick} // Pass admin data on profile click
                                                 >
+                                                    View Profile
+                                                </button>
                                             </div>
                                         </div>
                                     </li>
                                     <li>
-                                        <div className="dropdown-divider"></div>
-                                        <a className="dropdown-item" href="#">My Profile</a>
-                                        <a className="dropdown-item" href="#">My Balance</a>
-                                        <a className="dropdown-item" href="#">Inbox</a>
                                         <div className="dropdown-divider"></div>
                                         <a className="dropdown-item" href="#">Account Setting</a>
                                         <div className="dropdown-divider"></div>

@@ -25,8 +25,7 @@ const addAdmin = asyncHandler(async (req, res) => {
 const loginAdmin = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
-        res.status(400);
-        throw new Error('Email and Password are required');
+        res.status(400).json({ message: 'Email and Password are required' });
     }
 
     // Convert email to lowercase
@@ -63,6 +62,16 @@ const getAdmins = asyncHandler(async (req, res) => {
     res.status(200).json(admins);
 });
 
+// Get admin info
+const getSingleAdmin = asyncHandler(async (req, res) => {
+    const id = req.admin._id;
+    const admin = await Admin.findById(id);
+    if (!admin) {
+        res.status(404).json({ status: 'Admin Not Found' });
+    }
+    res.status(200).json({ adminInfo: admin });
+});
+
 // Change Admin Role
 const changeAdminRole = asyncHandler(async (req, res) => {
     const id = req.params.id;
@@ -78,4 +87,4 @@ const deleteAdmin = asyncHandler(async (req, res) => {
     res.status(200).json({ message: "Admin deleted successfully" });
 });
 
-module.exports = {addAdmin, loginAdmin, getAdmins, changeAdminRole, deleteAdmin };
+module.exports = { addAdmin, loginAdmin, getAdmins, getSingleAdmin, changeAdminRole, deleteAdmin };

@@ -62,6 +62,12 @@ exports.createTicket = [
         });
 
         await ticket.save();
+        
+        // Emit a notification for the new order
+        req.io.emit("newTicket", {
+            message: `New ticket received`,
+            createdAt: ticket.createdAt,
+        });
         res.status(201).json({
             message: 'Ticket created successfully',
             ticket

@@ -6,9 +6,9 @@ import axiosInstance from "../axiosConfig";
 const Reward = () => {
     const [rewards, setRewards] = useState([]);
     const [filterText, setFilterText] = useState("");
-    const [selectedCoupon, setSelectedCoupon] = useState(null);
+    const [selectedReward, setSelectedReward] = useState(null);
     const [showModal, setShowModal] = useState(false);
-    const [editingCoupon, setEditingCoupon] = useState(null);
+    const [editingReward, setEditingReward] = useState(null);
     const [newReward, setNewReward] = useState({});
 
     useEffect(() => {
@@ -58,24 +58,24 @@ const Reward = () => {
         });
     };
 
-    const handleViewCoupons = (coupon) => {
-        setSelectedCoupon(coupon);
+    const handleViewCoupons = (reward) => {
+        setSelectedReward(reward);
         setShowModal(true);
     };
 
     const handleEdit = () => {
-        setEditingCoupon({ ...selectedCoupon });
+        setEditingReward({ ...selectedReward });
     };
 
     const handleSaveEdit = async () => {
         try {
-            await axiosInstance.put(`/coupon/${editingCoupon._id}`, editingCoupon);
-            setSelectedCoupon(editingCoupon);
-            setEditingCoupon(null);
+            await axiosInstance.put(`/reward/${editingReward._id}`, editingReward);
+            setSelectedReward(editingReward);
+            setEditingReward(null);
             Swal.fire({
                 icon: "success",
                 title: "Updated!",
-                text: "Coupon updated successfully!",
+                text: "reward updated successfully!",
                 toast: true,
                 position: "bottom-end",
                 showConfirmButton: false,
@@ -83,12 +83,12 @@ const Reward = () => {
                 timerProgressBar: true,
             });
         } catch (error) {
-            Swal.fire("Error", "Failed to update coupon.", "error");
+            Swal.fire("Error", "Failed to update reward.", "error");
         }
     };
 
     const handleChange = (e) => {
-        setEditingCoupon({ ...editingCoupon, [e.target.name]: e.target.value });
+        setEditingReward({ ...editingReward, [e.target.name]: e.target.value });
     };
 
     const handleAddReward = async () => {
@@ -153,11 +153,11 @@ const Reward = () => {
             sortable: true,
         },
         {
-            name: "See Coupon",
+            name: "See Reward",
             cell: (row) => (
                 <button
                     className="btn btn-primary"
-                    onClick={() => handleViewCoupons(row.coupon)}
+                    onClick={() => handleViewCoupons(row)}
                 >
                     View Coupon
                 </button>
@@ -371,7 +371,7 @@ const Reward = () => {
             </div>
 
             {/* View Coupon modal */}
-            {showModal && selectedCoupon && (
+            {showModal && selectedReward && (
                 <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
                     <div className="modal-dialog" role="document" style={{ maxWidth: "70%" }}>
                         <div className="modal-content">
@@ -395,14 +395,14 @@ const Reward = () => {
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            {editingCoupon ? (
+                                            {editingReward ? (
                                                 <>
                                                     <td>
                                                         <div class="form-group form-group-default p-3">
                                                             <select
                                                                 class="form-select"
                                                                 id="formGroupDefaultSelect"
-                                                                name="discountType" value={editingCoupon.discountType} onChange={handleChange}
+                                                                name="discountType" value={editingReward.discountType} onChange={handleChange}
                                                             >
                                                                 <option value="percentage">Percentage</option>
                                                                 <option value="fixed" >Fixed</option>
@@ -414,7 +414,7 @@ const Reward = () => {
                                                             <input
                                                                 type="number"
                                                                 name="discountValue"
-                                                                value={editingCoupon.discountValue}
+                                                                value={editingReward.discountValue}
                                                                 onChange={handleChange}
                                                                 class="form-control"
                                                             />
@@ -425,7 +425,7 @@ const Reward = () => {
                                                             <input
                                                                 type="number"
                                                                 name="maxUsage"
-                                                                value={editingCoupon.maxUsage}
+                                                                value={editingReward.maxUsage}
                                                                 onChange={handleChange}
                                                                 class="form-control"
                                                             />
@@ -436,7 +436,7 @@ const Reward = () => {
                                                             <input
                                                                 type="date"
                                                                 name="expiryDate"
-                                                                value={editingCoupon.expiryDate}
+                                                                value={editingReward.expiryDate}
                                                                 onChange={handleChange}
                                                                 class="form-control"
                                                             />
@@ -447,7 +447,7 @@ const Reward = () => {
                                                             <select
                                                                 class="form-select"
                                                                 id="formGroupDefaultSelect"
-                                                                name="isActive" value={editingCoupon.isActive} onChange={handleChange}
+                                                                name="isActive" value={editingReward.isActive} onChange={handleChange}
                                                             >
                                                                 <option value="true">Active</option>
                                                                 <option value="false">Not Active</option>
@@ -458,11 +458,11 @@ const Reward = () => {
                                                 </>
                                             ) : (
                                                 <>
-                                                    <td>{selectedCoupon.discountType}</td>
-                                                    <td>{selectedCoupon.discountValue}</td>
-                                                    <td>{selectedCoupon.maxUsage}</td>
-                                                    <td>{new Date(selectedCoupon.expiryDate).toLocaleDateString()}</td>
-                                                    <td>{selectedCoupon.isActive ? "Active" : "Not Active"}</td>
+                                                    <td>{selectedReward.discountType}</td>
+                                                    <td>{selectedReward.discountValue}</td>
+                                                    <td>{selectedReward.maxUsage}</td>
+                                                    <td>{new Date(selectedReward.expiryDate).toLocaleDateString()}</td>
+                                                    <td>{selectedReward.isActive ? "Active" : "Not Active"}</td>
                                                     <td><button onClick={handleEdit} className="btn btn-primary">Edit</button></td>
                                                 </>
                                             )}

@@ -28,7 +28,7 @@ const timeAgo = (date) => {
     }
 };
 
-const Notification = () => {
+const OrderNotification = () => {
     const [notifications, setNotifications] = useState([]);
     const [count, setCount] = useState(0);
 
@@ -39,12 +39,21 @@ const Notification = () => {
         setCount(storedNotifications.length);
     }, []);
 
+    // Function to play notification sound
+    const playNotificationSound = () => {
+        const audio = new Audio("/notification.mp3");
+        audio.play().catch((err) => console.error("Error playing sound:", err));
+    };
+
+    // Listen for new order notifications
     useEffect(() => {
         socket.on("newOrder", (order) => {
             const updatedNotifications = [order, ...notifications];
             setNotifications(updatedNotifications);
             setCount(updatedNotifications.length);
-            localStorage.setItem("notifications", JSON.stringify(updatedNotifications)); // Save to localStorage
+            localStorage.setItem("notifications", JSON.stringify(updatedNotifications));
+
+            playNotificationSound();
         });
 
         return () => {
@@ -102,7 +111,7 @@ const Notification = () => {
                         <div className="notif-center">
                             {notifications.map((notif, index) => (
                                 <a
-                                    href="/orders"
+                                    href={notif.orderType === "Normal" ? "/normal-orders" : "/fast-orders"}
                                     key={index}
                                     onClick={() => handleNotificationClick(index)}
                                 >
@@ -120,14 +129,9 @@ const Notification = () => {
                         </div>
                     </div>
                 </li>
-                <li>
-                    <a className="see-all" href="#">
-                        See all notifications<i className="fa fa-angle-right"></i>
-                    </a>
-                </li>
             </ul>
         </li>
     );
 };
 
-export default Notification;
+export default OrderNotification;

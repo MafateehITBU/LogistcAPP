@@ -162,6 +162,7 @@ const createOrder = asyncHandler(async (req, res) => {
         req.io.emit("newOrder", {
             message: `New order received`,
             createdAt: order.createdAt,
+            orderType: order.orderType,
         });
 
         res.status(201).json({

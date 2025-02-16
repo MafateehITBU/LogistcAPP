@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-route
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 import Login from './components/Login';
+import Profile from './components/Profile';
 import UnAuth from './components/UnAuth';
 import Sidebar from "./components/Sidebar";
 import Header from './components/Header';
@@ -36,6 +37,7 @@ function AppContent() {
             <div className="main-area" style={{ minHeight: "80vh" }}>
               <Routes>
                 <Route path="/" element={<ProtectedRoute component={Home} rolesRequired={["Admin","Accountant", "Dispatcher", "HR", "StoreKeeper", "SupportTeam"]} />} />
+                <Route path="/profile" element={<ProtectedRoute component={Profile} rolesRequired={["Admin","Accountant", "Dispatcher", "HR", "StoreKeeper", "SupportTeam"]} />} />
                 <Route path="/admin" element={<ProtectedRoute component={Admin} rolesRequired={["Admin"]} />} />
                 <Route path="/partners" element={<ProtectedRoute component={Partner} rolesRequired={["Admin", "HR"]} />} />
                 <Route path="/normalUsers" element={<ProtectedRoute component={Normal} rolesRequired={["Admin", "HR"]} />} />
