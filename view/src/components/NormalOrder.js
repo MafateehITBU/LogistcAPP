@@ -13,6 +13,7 @@ const NormalOrder = () => {
     const [delivery, setDelivery] = useState([]);
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [showAddressModal, setShowAddressModal] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]); // Default to today's date
 
     useEffect(() => {
         fetchOrders();
@@ -268,13 +269,16 @@ const NormalOrder = () => {
         },
     };
 
-    const filteredData = orders.filter((order) =>
-        order.user.name.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.city.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.district.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.area.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.street.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.status.toLowerCase().includes(filterText.toLowerCase())
+    const filteredData = orders.filter(order =>
+        (new Date(order.createdAt).toISOString().split("T")[0] === selectedDate) &&
+        (
+            order.user.name.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.city.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.district.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.area.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.street.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.status.toLowerCase().includes(filterText.toLowerCase())
+        )
     );
 
     return (
@@ -292,6 +296,13 @@ const NormalOrder = () => {
                                     style={{ maxWidth: "300px" }}
                                     value={filterText}
                                     onChange={(e) => setFilterText(e.target.value)}
+                                />
+                                <input
+                                    type="date"
+                                    className="form-control"
+                                    style={{ maxWidth: "300px" }}
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
                                 />
                             </div>
                         </div>

@@ -215,7 +215,7 @@ const Reward = () => {
                                     data-bs-toggle="modal"
                                     data-bs-target="#addRowModal"
                                 >
-                                    <i className="fa fa-plus"></i> Add Row
+                                    <i className="fa fa-plus"></i> Add Reward
                                 </button>
                             </div>
                         </div>

@@ -3,7 +3,6 @@ import DataTable from "react-data-table-component";
 import { Dropdown } from "react-bootstrap";
 import Swal from "sweetalert2";
 import axiosInstance from "../axiosConfig";
-import { parseISO } from "date-fns";
 
 const FastOrder = () => {
     const [orders, setOrders] = useState([]);
@@ -13,6 +12,7 @@ const FastOrder = () => {
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [captains, setCaptains] = useState([]);
     const [selectedAddress, setSelectedAddress] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]); // Default to today's date
 
     useEffect(() => {
         fetchOrders();
@@ -207,13 +207,16 @@ const FastOrder = () => {
         },
     };
 
-    const filteredData = orders.filter((order) =>
-        order.user.name.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.city.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.district.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.area.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.street.toLowerCase().includes(filterText.toLowerCase()) ||
-        order.status.toLowerCase().includes(filterText.toLowerCase())
+    const filteredData = orders.filter(order =>
+        (new Date(order.createdAt).toISOString().split("T")[0] === selectedDate) &&
+        (
+            order.user.name.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.city.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.district.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.area.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.street.toLowerCase().includes(filterText.toLowerCase()) ||
+            order.status.toLowerCase().includes(filterText.toLowerCase())
+        )
     );
 
     return (
@@ -232,7 +235,13 @@ const FastOrder = () => {
                                     value={filterText}
                                     onChange={(e) => setFilterText(e.target.value)}
                                 />
-
+                                <input
+                                    type="date"
+                                    className="form-control"
+                                    style={{ maxWidth: "300px" }}
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                />
                             </div>
                         </div>
                         <div className="card-body">

@@ -6,7 +6,15 @@ import axiosInstance from "../axiosConfig";
 
 const Admin = () => {
     const [admins, setAdmins] = useState([]);
-    const [newAdmin, setNewAdmin] = useState({});
+    const [newAdmin, setNewAdmin] = useState({
+        name: "",
+        email: "",
+        password: "",
+        phone: "",
+        role: "",
+        profilePicture: null,
+        salary:""
+    });
     const [filterText, setFilterText] = useState("");
 
     useEffect(() => {
@@ -24,7 +32,21 @@ const Admin = () => {
 
     const handleAddAdmin = async () => {
         try {
-            const response = await axiosInstance.post("/admin/addAdmin", newAdmin);
+            const formData = new FormData();
+            formData.append("name", newAdmin.name);
+            formData.append("email", newAdmin.email);
+            formData.append("password", newAdmin.password);
+            formData.append("phone", newAdmin.phone);
+            formData.append("role", newAdmin.role);
+            if (newAdmin.profilePicture) {
+                formData.append("profilePic", newAdmin.profilePicture);
+            }
+
+            const response = await axiosInstance.post("/admin/addAdmin", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
 
             if (response.status === 201) {
                 Swal.fire({
@@ -38,16 +60,14 @@ const Admin = () => {
                     timerProgressBar: true,
                 });
 
-                // Refresh the admin list
                 fetchAdmins();
-
-                // Reset the form fields
                 setNewAdmin({
                     name: "",
                     email: "",
                     password: "",
                     phone: "",
                     role: "",
+                    profilePicture: null,
                 });
 
                 // Close the modal
@@ -102,6 +122,19 @@ const Admin = () => {
     };
 
     const columns = [
+        {
+            name: "Image",
+            selector: (row) =>
+                row.profilePicture ? (
+                    <img
+                        src={row.profilePicture}
+                        alt="user profilePicture"
+                        style={{ width: "50px", height: "50px", borderRadius: "5px", cursor: "pointer" }}
+                    />
+                ) : (
+                    "No profilePicture attached"
+                ),
+        },
         {
             name: "Name",
             selector: (row) => row.name,
@@ -186,7 +219,7 @@ const Admin = () => {
                                 data-bs-toggle="modal"
                                 data-bs-target="#addRowModal"
                             >
-                                <i className="fa fa-plus"></i> Add Row
+                                <i className="fa fa-plus"></i> Add Admin
                             </button>
                         </div>
                         <div className="card-body">
@@ -208,132 +241,46 @@ const Admin = () => {
                             />
 
                             {/*Add New Admin Modal Content */}
-                            <div
-                                className="modal fade"
-                                id="addRowModal"
-                                tabIndex="-1"
-                                role="dialog"
-                                aria-hidden="true"
-                            >
+                            <div className="modal fade" id="addRowModal" tabIndex="-1" role="dialog">
                                 <div className="modal-dialog" role="document">
                                     <div className="modal-content">
-                                        <div className="modal-header border-0">
-                                            <h5 className="modal-title">
-                                                <span className="fw-mediumbold">New</span>
-                                                <span className="fw-light"> Admin</span>
-                                            </h5>
-                                            <button
-                                                type="button"
-                                                className="close"
-                                                data-bs-dismiss="modal"
-                                                aria-label="Close"
-                                            >
-                                                <span aria-hidden="true">&times;</span>
+                                        <div className="modal-header">
+                                            <h5 className="modal-title">New Admin</h5>
+                                            <button type="button" className="close" data-bs-dismiss="modal">
+                                                <span>&times;</span>
                                             </button>
                                         </div>
                                         <div className="modal-body">
-                                            <p className="small">
-                                                Create a new row using this form. Make sure you fill out all fields.
-                                            </p>
                                             <form>
-                                                <div className="row">
-                                                    <div className="col-sm-12">
-                                                        <div className="form-group form-group-default">
-                                                            <label>Name</label>
-                                                            <input
-                                                                type="text"
-                                                                className="form-control"
-                                                                placeholder="Enter admin name"
-                                                                value={newAdmin.name}
-                                                                onChange={(e) =>
-                                                                    setNewAdmin({ ...newAdmin, name: e.target.value })
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-sm-12">
-                                                        <div className="form-group form-group-default">
-                                                            <label>Email</label>
-                                                            <input
-                                                                type="email"
-                                                                className="form-control"
-                                                                placeholder="Enter Email"
-                                                                value={newAdmin.email}
-                                                                onChange={(e) =>
-                                                                    setNewAdmin({ ...newAdmin, email: e.target.value })
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-sm-12">
-                                                        <div className="form-group form-group-default">
-                                                            <label>Password</label>
-                                                            <input
-                                                                type="password"
-                                                                className="form-control"
-                                                                placeholder="Enter password"
-                                                                value={newAdmin.password}
-                                                                onChange={(e) =>
-                                                                    setNewAdmin({ ...newAdmin, password: e.target.value })
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-sm-12">
-                                                        <div className="form-group form-group-default">
-                                                            <label>Phone</label>
-                                                            <input
-                                                                type="text"
-                                                                className="form-control"
-                                                                placeholder="Enter phone number"
-                                                                value={newAdmin.phone}
-                                                                onChange={(e) =>
-                                                                    setNewAdmin({ ...newAdmin, phone: e.target.value })
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-sm-12">
-                                                        <div className="form-group form-group-default">
-                                                            <label>Role</label>
-                                                            <select
-                                                                className="form-select"
-                                                                value={newAdmin.role}
-                                                                onChange={(e) =>
-                                                                    setNewAdmin({ ...newAdmin, role: e.target.value })
-                                                                }
-                                                            >
-                                                                <option value="Admin">Admin</option>
-                                                                <option value="Accountant">Accountant</option>
-                                                                <option value="Dispatcher">Dispatcher</option>
-                                                                <option value="HR">HR</option>
-                                                                <option value="StoreKeeper">Store Keeper</option>
-                                                                <option value="SupportTeam">Support Team</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <input type="text" className="form-control mb-2" placeholder="Name" value={newAdmin.name} onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })} />
+                                                <input type="email" className="form-control mb-2" placeholder="Email" value={newAdmin.email} onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })} />
+                                                <input type="password" className="form-control mb-2" placeholder="Password" value={newAdmin.password} onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })} />
+                                                <input type="text" className="form-control mb-2" placeholder="Phone" value={newAdmin.phone} onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })} />
+                                                <input type="file" className="form-control mb-2" accept="image/*" onChange={(e) => setNewAdmin({ ...newAdmin, profilePicture: e.target.files[0] })} />
+                                                <select
+                                                    className="form-select mb-2"
+                                                    value={newAdmin.role}
+                                                    onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value })}
+                                                >
+                                                    <option value="">Select Role</option>
+                                                    <option value="Admin">Admin</option>
+                                                    <option value="Accountant">Accountant</option>
+                                                    <option value="Dispatcher">Dispatcher</option>
+                                                    <option value="HR">HR</option>
+                                                    <option value="StoreKeeper">Store Keeper</option>
+                                                    <option value="SupportTeam">Support Team</option>
+                                                </select>
+                                                <input type="text" className="form-control mb-2" placeholder="Salary" value={newAdmin.salary} onChange={(e) => setNewAdmin({ ...newAdmin, salary: e.target.value })} />
                                             </form>
                                         </div>
-                                        <div className="modal-footer border-0">
-                                            <button
-                                                type="button"
-                                                className="btn btn-primary"
-                                                onClick={handleAddAdmin}
-                                            >
-                                                Add
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="btn btn-danger"
-                                                data-bs-dismiss="modal"
-                                            >
-                                                Close
-                                            </button>
+                                        <div className="modal-footer">
+                                            <button type="button" className="btn btn-primary" onClick={handleAddAdmin}>Add</button>
+                                            <button type="button" className="btn btn-danger" data-bs-dismiss="modal">Close</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>

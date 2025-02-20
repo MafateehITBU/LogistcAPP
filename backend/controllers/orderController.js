@@ -302,6 +302,45 @@ const assignCaptains = async (req, res) => {
     }
 };
 
+// Helper: Check date for order history
+const checkDateForOrderHistory = async (orderCountHistory, captain) => {
+    const date = new Date("2025-1-1");
+    const year = date.getFullYear();
+    const month = date.getMonth(); // 0-11 (January = 0, December = 11)
+    const day = date.getDate();
+
+    // Check if today is the 1st day of the month
+    if (day === 1) {
+        // Find the history entry for the previous month in the order count history
+        let history = orderCountHistory.find((history) => history.year === year);
+
+        if (!history) {
+            // If no history exists for this year, create one
+            history = { year: year, months: {} };
+            orderCountHistory.push(history);
+        }
+
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+            'September', 'October', 'November', 'December'
+        ];
+
+        // Add ordersCount to the appropriate month (previous month)
+        const prevMonthName = monthNames[month === 0 ? 11 : month - 1]; // Handle January (index 0) to December (index 11)
+        if (prevMonthName === "December") {
+            prevHistory = { year: year - 1, months: {} };
+            orderCountHistory.push(prevHistory);
+            prevHistory.months.prevMonthName = captain.ordersCount;
+        } else {
+            history.months.prevMonthName = (history.months[prevMonthName] || 0) + captain.ordersCount;
+        }
+
+        // Reset ordersCount to 0 after transferring it to the history
+        captain.ordersCount = 0;
+        // await captain.save();
+    }
+};
+
 //Change Status for Admins (inStore , OutFor Delevery)
 const changeOrderStatusAdmin = async (req, res) => {
     try {
@@ -322,6 +361,17 @@ const changeOrderStatusAdmin = async (req, res) => {
         const order = await Order.findById(orderId);
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
+        }
+
+        if (status === "InStore") {
+            captain = await FulltimeCaptain.findById(order.procurementOfficer);
+            if (!captain) {
+                return res.status(404).json({ message: 'Captain not found' });
+            }
+            checkDateForOrderHistory(captain.orderCountHistory, captain);
+            // Update captain's orders
+            captain.ordersCount = (captain.ordersCount || 0) + 1;
+            await captain.save();
         }
 
         // Update the status
@@ -379,6 +429,16 @@ const changeOrderStatusByCaptain = async (req, res) => {
             order.postponedDate = postponedDate;
         }
 
+        if (status === 'Delivered') {
+            let captain = await FulltimeCaptain.findById(order.deliveryCaptain);
+            if (captain) {
+                // Update captain's orders
+                checkDateForOrderHistory(captain.orderCountHistory, captain);
+                captain.ordersCount = (captain.ordersCount || 0) + 1;
+                await captain.save();
+            }
+        }
+
         order.status = status;
         await order.save();
 
@@ -390,9 +450,6 @@ const changeOrderStatusByCaptain = async (req, res) => {
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
-
-
-
 
 
 

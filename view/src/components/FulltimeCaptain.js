@@ -11,6 +11,14 @@ const FulltimeCaptain = () => {
     const [selectedImage, setSelectedImage] = useState(null); // To store the clicked image
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [cars, setCars] = useState([]);
+    const [newCaptain, setNewCaptain] = useState({
+        name: "",
+        email: "",
+        password: "",
+        phone: "",
+        role: "",
+        profilePicture: null,
+    });
 
     useEffect(() => {
         fetchCaptains();
@@ -35,6 +43,57 @@ const FulltimeCaptain = () => {
         }
     };
 
+    const handleAddCaptain = async () => {
+        try {
+            const formData = new FormData();
+            formData.append("name", newCaptain.name);
+            formData.append("email", newCaptain.email);
+            formData.append("password", newCaptain.password);
+            formData.append("phone", newCaptain.phone);
+            formData.append("role", newCaptain.role);
+            if (newCaptain.profilePicture) {
+                formData.append("profilePic", newCaptain.profilePicture);
+            }
+
+            const response = await axiosInstance.post("/fulltimeCaptain/signup", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            if (response.status === 201) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Success!",
+                    text: "Admin added successfully.",
+                    toast: true,
+                    position: "bottom-end",
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
+
+                fetchCaptains();
+                setNewCaptain({
+                    name: "",
+                    email: "",
+                    password: "",
+                    phone: "",
+                    role: "",
+                    profilePicture: null,
+                });
+
+                // Close the modal
+                const modalElement = document.getElementById("addRowModal");
+                const modalInstance = window.bootstrap.Modal.getInstance(modalElement);
+                modalInstance.hide();
+            }
+        } catch (error) {
+            Swal.fire("Error!", "Failed to add Admin.", "error");
+            console.error("Error adding admin:", error);
+        }
+    };
+
     const handleDelete = async (id) => {
         Swal.fire({
             title: "Are you sure?",
@@ -48,7 +107,16 @@ const FulltimeCaptain = () => {
             if (result.isConfirmed) {
                 try {
                     await axiosInstance.delete(`/fulltimeCaptain/${id}`);
-                    Swal.fire("Deleted!", "The captain has been deleted.", "success");
+                    Swal.fire({
+                        icon: "success",
+                        title: "Deleted!",
+                        text: "Admin has been deleted successfully.",
+                        toast: true,
+                        position: "bottom-end",
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                    });
                     // Update the state to remove the deleted captain
                     setCaptains((prevCaptains) => prevCaptains.filter((captain) => captain._id !== id));
                 } catch (error) {
@@ -269,6 +337,14 @@ const FulltimeCaptain = () => {
                                 value={filterText}
                                 onChange={(e) => setFilterText(e.target.value)}
                             />
+
+                            <button
+                                className="btn btn-primary btn-round"
+                                data-bs-toggle="modal"
+                                data-bs-target="#addRowModal"
+                            >
+                                <i className="fa fa-plus"></i> Add Captain
+                            </button>
                         </div>
                         <div className="card-body">
                             <DataTable
@@ -316,6 +392,42 @@ const FulltimeCaptain = () => {
                     />
                 </div>
             )}
+
+            {/*Add New Captain Modal Content */}
+            <div className="modal fade" id="addRowModal" tabIndex="-1" role="dialog">
+                <div className="modal-dialog" role="document">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h5 className="modal-title">New Captain</h5>
+                            <button type="button" className="close" data-bs-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <form>
+                                <input type="text" className="form-control mb-2" placeholder="Name" value={newCaptain.name} onChange={(e) => setNewCaptain({ ...newCaptain, name: e.target.value })} />
+                                <input type="email" className="form-control mb-2" placeholder="Email" value={newCaptain.email} onChange={(e) => setNewCaptain({ ...newCaptain, email: e.target.value })} />
+                                <input type="password" className="form-control mb-2" placeholder="Password" value={newCaptain.password} onChange={(e) => setNewCaptain({ ...newCaptain, password: e.target.value })} />
+                                <input type="text" className="form-control mb-2" placeholder="Phone" value={newCaptain.phone} onChange={(e) => setNewCaptain({ ...newCaptain, phone: e.target.value })} />
+                                <input type="file" className="form-control mb-2" accept="image/*" onChange={(e) => setNewCaptain({ ...newCaptain, profilePicture: e.target.files[0] })} />
+                                <select
+                                    className="form-select mb-2"
+                                    value={newCaptain.role}
+                                    onChange={(e) => setNewCaptain({ ...newCaptain, role: e.target.value })}
+                                >
+                                    <option value="">Select Role</option>
+                                    <option value="procurement">Procurement</option>
+                                    <option value="delivery">Delivery</option>
+                                </select>
+                            </form>
+                        </div>
+                        <div className="modal-footer">
+                            <button type="button" className="btn btn-primary" onClick={handleAddCaptain}>Add</button>
+                            <button type="button" className="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

@@ -21,9 +21,11 @@ const adminSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['Admin', 'Accountant', 'Dispatcher','HR', 'StoreKeeper', 'SupportTeam'],
+        enum: ['Admin', 'Accountant', 'Dispatcher', 'HR', 'StoreKeeper', 'SupportTeam'],
         required: true,
     },
+    profilePicture: { type: String, required: false },
+    salaryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salary' }
 }, { timestamps: true });
 
 adminSchema.pre('save', async function (next) {

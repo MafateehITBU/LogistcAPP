@@ -18,6 +18,7 @@ const Sidebar = () => {
     const isNormalOrder = location.pathname === "/normal-orders";
     const isTicket = location.pathname === "/tickets";
     const isReward = location.pathname === "/rewards";
+    const isSalary = location.pathname === "/salary";
 
     // Conditionally render sidebar items based on the role
     return (
@@ -66,6 +67,7 @@ const Sidebar = () => {
                             </span>
                             <h4 className="text-section">Tables</h4>
                         </li>
+                        
                         {/* Admin section */}
                         {(adminRole === "Admin") && (
                             <li className={`nav-item ${isAdmin ? "active" : ""}`}>
@@ -187,6 +189,16 @@ const Sidebar = () => {
                                 <a href="/rewards">
                                     <i className="fa-solid fa-ticket"></i>
                                     <p>Rewards</p>
+                                </a>
+                            </li>
+                        )}
+
+                        {/* Salary Section */}
+                        {(adminRole === "Admin" || adminRole === "HR" || adminRole === "Accountant") && (
+                            <li className={`nav-item ${isSalary ? "active" : ""}`}>
+                                <a href="/salary">
+                                    <i class="fa-solid fa-money-bill"></i>
+                                    <p>Salary</p>
                                 </a>
                             </li>
                         )}

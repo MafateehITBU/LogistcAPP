@@ -50,7 +50,7 @@ const fulltimeCaptainSchema = mongoose.Schema({
     },
     accountStatus: {
         type: String,
-        default: 'pending',
+        default: 'approved',
         enum: ['pending', 'approved', 'incomplete', 'rejected']
     },
     otp: {
@@ -58,7 +58,32 @@ const fulltimeCaptainSchema = mongoose.Schema({
     },
     otpExpiry: {
         type: Date,
-    }
+    },
+    ordersCount: {
+        type: Number,
+        default: 0
+    },
+    orderCountHistory: [{
+        year: {
+            type: Number,
+            required: true
+        },
+        months: {
+            January: { type: Number, default: 0 },
+            February: { type: Number, default: 0 },
+            March: { type: Number, default: 0 },
+            April: { type: Number, default: 0 },
+            May: { type: Number, default: 0 },
+            June: { type: Number, default: 0 },
+            July: { type: Number, default: 0 },
+            August: { type: Number, default: 0 },
+            September: { type: Number, default: 0 },
+            October: { type: Number, default: 0 },
+            November: { type: Number, default: 0 },
+            December: { type: Number, default: 0 }
+        }
+    }],
+    salaryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salary'}
 }, { timestamps: true });
 
 fulltimeCaptainSchema.pre('save', async function (next) {

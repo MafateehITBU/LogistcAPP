@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const Captain = require('../models/FulltimeCaptain');
-const FreelanceCaptain = require('../models/freelanceCaptain');
+const FreelanceCaptain = require('../models/FreelanceCaptain');
 const asyncHandler = require('express-async-handler');
 
 // Middleware to authenticate captain

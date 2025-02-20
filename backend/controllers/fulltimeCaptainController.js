@@ -3,7 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const Captain = require('../models/FulltimeCaptain');
-const Car = require ('../models/Car');
+const Car = require('../models/Car');
+const Salary = require('../models/Salary');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const fs = require('fs');
@@ -137,7 +138,7 @@ exports.assignCar = asyncHandler(async (req, res) => {
     await captain.save();
     res.status(200).json({ message: 'Car assigned to captain successfully' });
 });
-    
+
 // Update account status by Admin
 exports.updateAccountStatus = async (req, res) => {
     try {
@@ -162,6 +163,17 @@ exports.updateAccountStatus = async (req, res) => {
 
         // Update the status
         captain.accountStatus = accountStatus;
+
+        if (accountStatus === 'approved') {
+            const salary = new Salary({
+                startDate: new Date(),
+                position: 'Fulltime Captain',
+            });
+
+            const createdSalary = await salary.save();
+            captain.salaryId = createdSalary.id;
+        }
+
         await captain.save();
 
         res.status(200).json({
@@ -176,7 +188,21 @@ exports.updateAccountStatus = async (req, res) => {
 // Delete captain controller
 exports.deleteCaptain = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const captain = await Captain.findByIdAndDelete(id);
-    if (!captain) return res.status(404).json({ error: 'Captain not found' });
-    res.status(200).json({ message: 'Captain deleted successfully' });
+
+    try {
+        const captain = await Captain.findById(id);
+        if (!captain) return res.status(404).json({ error: 'Captain not found' });
+
+        // If the captain has a salary, delete it
+        if (captain.salaryId) {
+            await Salary.findByIdAndDelete(captain.salaryId);
+        }
+
+        // Delete the captain
+        await Captain.findByIdAndDelete(id);
+
+        res.status(200).json({ message: 'Captain and associated salary deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });

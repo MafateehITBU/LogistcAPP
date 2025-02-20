@@ -19,6 +19,7 @@ import Ticket from './components/Ticket';
 import Reward from './components/Reward';
 import NormalOrder from './components/NormalOrder';
 import FastOrder from './components/FastOrder';
+import Salary from './components/Salary';
 import Footer from "./components/Footer";
 import ProtectedRoute from './components/ProtectedRoutes';
 
@@ -49,6 +50,7 @@ function AppContent() {
                 <Route path="/fast-orders" element={<ProtectedRoute component={FastOrder} rolesRequired={["Admin", "Dispatcher"]} />} />
                 <Route path="/tickets" element={<ProtectedRoute component={Ticket} rolesRequired={["Admin", "SupportTeam"]} />} />
                 <Route path="/rewards" element={<ProtectedRoute component={Reward} rolesRequired={["Admin"]} />} />
+                <Route path="/salary" element={<ProtectedRoute component={Salary} rolesRequired={["Admin", "HR", "Accountant"]} />} />
               </Routes>
             </div>
             <Footer />

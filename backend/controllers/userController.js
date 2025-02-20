@@ -75,7 +75,7 @@ exports.signup = [
             } else {
                 user = new User({
                     name,
-                    email,
+                    email: lowercaseEmail,
                     password: hashedPassword,
                     phone,
                     age,
