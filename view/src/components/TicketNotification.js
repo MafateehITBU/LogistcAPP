@@ -95,7 +95,7 @@ const TicketNotification = () => {
                 aria-haspopup="true"
                 aria-expanded="false"
             >
-                <i className="fa fa-envelope"></i>
+                <i className="fa-solid fa-ticket"></i>
                 {count > 0 && <span className="notification">{count}</span>}
             </a>
             <ul

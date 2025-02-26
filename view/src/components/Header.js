@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
+import ChatNotification from './ChatNotification';
 import OrderNotification from "./OrderNotification";
 import TicketNotification from './TicketNotification';
 import axiosInstance from '../axiosConfig';
@@ -57,7 +58,9 @@ const Header = () => {
                                 <i className="fa fa-search"></i>
                             </a>
                         </li>
-                        {/* Messages */}
+                        {/* Chat Notification */}
+                        <ChatNotification />
+                        {/* Ticket Notification */}
                         {(adminRole === "Admin" || adminRole === "SupportTeam") && (
                             <TicketNotification />
                         )}

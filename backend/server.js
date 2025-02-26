@@ -18,6 +18,7 @@ const rewardRoutes = require('./routes/rewardRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const userItemsRoutes = require('./routes/userItemsRoutes')
 const salaryRoutes = require('./routes/salaryRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -65,6 +66,7 @@ app.use('/api/ticket', ticketRoutes);
 app.use('/api/reward', rewardRoutes);
 app.use('/api/order', orderRoutes);
 app.use('/api/salary', salaryRoutes);
+app.use('/api/chat', chatRoutes)
 app.use(errorHandler);
 
 const port = process.env.PORT || 8081;

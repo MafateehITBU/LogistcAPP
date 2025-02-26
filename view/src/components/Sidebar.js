@@ -197,7 +197,7 @@ const Sidebar = () => {
                         {(adminRole === "Admin" || adminRole === "HR" || adminRole === "Accountant") && (
                             <li className={`nav-item ${isSalary ? "active" : ""}`}>
                                 <a href="/salary">
-                                    <i class="fa-solid fa-money-bill"></i>
+                                    <i className="fa-solid fa-money-bill"></i>
                                     <p>Salary</p>
                                 </a>
                             </li>

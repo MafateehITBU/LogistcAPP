@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 import Login from './components/Login';
@@ -21,7 +22,11 @@ import NormalOrder from './components/NormalOrder';
 import FastOrder from './components/FastOrder';
 import Salary from './components/Salary';
 import Footer from "./components/Footer";
+import Chat from './components/Chat';
 import ProtectedRoute from './components/ProtectedRoutes';
+
+// Create a Socket Context for global access
+export const SocketContext = createContext(null);
 
 function AppContent() {
   const location = useLocation();
@@ -37,8 +42,8 @@ function AppContent() {
             <Header />
             <div className="main-area" style={{ minHeight: "80vh" }}>
               <Routes>
-                <Route path="/" element={<ProtectedRoute component={Home} rolesRequired={["Admin","Accountant", "Dispatcher", "HR", "StoreKeeper", "SupportTeam"]} />} />
-                <Route path="/profile" element={<ProtectedRoute component={Profile} rolesRequired={["Admin","Accountant", "Dispatcher", "HR", "StoreKeeper", "SupportTeam"]} />} />
+                <Route path="/" element={<ProtectedRoute component={Home} rolesRequired={["Admin", "Accountant", "Dispatcher", "HR", "StoreKeeper", "SupportTeam"]} />} />
+                <Route path="/profile" element={<ProtectedRoute component={Profile} rolesRequired={["Admin", "Accountant", "Dispatcher", "HR", "StoreKeeper", "SupportTeam"]} />} />
                 <Route path="/admin" element={<ProtectedRoute component={Admin} rolesRequired={["Admin"]} />} />
                 <Route path="/partners" element={<ProtectedRoute component={Partner} rolesRequired={["Admin", "HR"]} />} />
                 <Route path="/normalUsers" element={<ProtectedRoute component={Normal} rolesRequired={["Admin", "HR"]} />} />
@@ -51,6 +56,7 @@ function AppContent() {
                 <Route path="/tickets" element={<ProtectedRoute component={Ticket} rolesRequired={["Admin", "SupportTeam"]} />} />
                 <Route path="/rewards" element={<ProtectedRoute component={Reward} rolesRequired={["Admin"]} />} />
                 <Route path="/salary" element={<ProtectedRoute component={Salary} rolesRequired={["Admin", "HR", "Accountant"]} />} />
+                <Route path="/chats" element={<ProtectedRoute component={Chat} rolesRequired={["Admin"]} />} />
               </Routes>
             </div>
             <Footer />
@@ -67,10 +73,33 @@ function AppContent() {
 }
 
 function App() {
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    const newSocket = io("http://localhost:8080");
+
+    newSocket.on("connect", () => {
+      console.log("✅ Connected to the socket");
+    });
+
+    newSocket.on("disconnect", () => {
+      console.log("❌ Disconnected from socket");
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      console.log("🛑 Cleaning up socket...");
+      newSocket.disconnect();
+    };
+  }, []);
+
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <SocketContext.Provider value={socket}>
+      <Router>
+        <AppContent />
+      </Router>
+    </SocketContext.Provider>
   );
 }
 
