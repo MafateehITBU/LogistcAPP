@@ -5,6 +5,8 @@ const UserItems = require('../models/userItems');
 const asyncHandler = require('express-async-handler');
 const FulltimeCaptain = require('../models/FulltimeCaptain');
 const FreelanceCaptain = require('../models/FreelanceCaptain');
+const Wallet = require('../models/Wallet');
+const Transaction = require('../models/Transaction');
 const mongoose = require('mongoose');
 
 // Helper: Validate user by userId
@@ -56,6 +58,228 @@ const validateItems = async (items, user) => {
     return totalPrice;
 };
 
+// Helper: Update the wallet balance when credit or debit is updated
+const updateWalletBalance = asyncHandler(async (walletId, amount, transactionType) => {
+    try {
+        const wallet = await Wallet.findById(walletId);
+        if (!wallet) {
+            throw new Error("Wallet not found");
+        }
+
+        // Update wallet balance based on transaction type
+        wallet.balance = transactionType === "credit" ? wallet.balance + amount : wallet.balance - amount;
+        await wallet.save();
+    } catch (error) {
+        console.error("Error updating wallet balance:", error.message);
+    }
+});
+
+// Helper : Move current transaction to history and update
+const moveTransactionToHistory = async (transaction, amount, orderId, walletId, type) => {
+    try {
+        transaction.transactionHistory.push({
+            amount: transaction.amount,
+            orderId: transaction.orderId,
+            description: transaction.description,
+            paid: transaction.paid,
+            timestamp: transaction.updatedAt // Store timestamp of the previous transaction
+        });
+
+        // Update the existing transaction with new data
+        transaction.amount = amount;
+        transaction.orderId = orderId;
+
+        await transaction.save();
+        await updateWalletBalance(walletId, amount, type);
+    } catch (err) {
+        console.error("Error moving transaction to history:", err.message);
+    }
+};
+
+// Helper: Create a new transaction
+const createTransaction = async (type, amount, orderId, walletId) => {
+    try {
+        const newTransaction = new Transaction({
+            walletId,
+            amount,
+            orderId,
+            type,
+            transactionHistory: [] // Empty history initially
+        });
+
+        await newTransaction.save();
+        await updateWalletBalance(walletId, amount, type);
+    } catch (err) {
+        console.error("Error creating transaction:", err.message);
+    }
+};
+
+// Helper: Handle user balance (in wallet) based on order status
+const handleUserBalance = async (order, user) => {
+    try {
+        const walletId = user.walletNo;
+        if (!walletId) console.log("User wallet not found");
+
+        const wallet = await Wallet.findById(walletId);
+        if (!wallet) console.log("Wallet not found");
+
+        const { paymentStatus } = order;
+        const deliveryFee = 3;
+        let amount, type;
+
+        switch (paymentStatus) {
+            case "Paid":
+                amount = deliveryFee;
+                type = "debit";
+                break;
+            case "Unpaid":
+                amount = order.totalPrice - deliveryFee;
+                type = "credit";
+                break;
+            default:
+                return;
+        }
+
+        let transaction = await Transaction.findOne({ walletId, type });
+        if (transaction) {
+            await moveTransactionToHistory(transaction, amount, order._id, walletId, type);
+        } else {
+            await createTransaction(type, amount, order._id, walletId);
+        }
+    } catch (err) {
+        console.error("Error handling user balance:", err.message);
+    }
+};
+
+// Helper: Handle captains balance
+const handleCaptainBalance = async (order, captain, captainModel) => {
+    try {
+        console.log("in the function of captain balance");
+        const walletId = captain.walletNo;
+        if (!walletId) {
+            console.log("Captain wallet not found");
+            return;
+        }
+        console.log("WalletID: " + walletId);
+
+        let wallet = await Wallet.findById(walletId);
+        if (!wallet) {
+            console.log("Wallet not found");
+            return;
+        }
+
+        console.log("Wallet before transaction: ", wallet);
+
+        const { paymentStatus, status, totalPrice } = order;
+        const delivery = 3;
+        console.log("Order info: ", order);
+
+        // Transactions for each case
+        const transactionCases = {
+            FulltimeCaptain: {
+                OutToDelivery: {
+                    Paid: [{ amount: delivery, type: "debit" }],
+                    Unpaid: [{ amount: totalPrice + delivery, type: "debit" }],
+                },
+                Refused: {
+                    Unpaid: [{ amount: order.totalPrice, type: "debit" }],
+                },
+                Partially: {
+                    Unpaid: [{ amount: order.totalPrice, type: "debit" }],
+                }
+            },
+            FreelanceCaptain: {
+                OutToDelivery: {
+                    Paid: [{ amount: 1, type: "credit" }],
+                    Unpaid: [
+                        { amount: totalPrice + delivery, type: "debit" },
+                        { amount: 1, type: "credit" },
+                    ],
+                },
+                Refused: {
+                    Paid: [{ amount: 1, type: "credit" }],
+                    Unpaid: [
+                        { amount: order.totalPrice + delivery, type: "debit" },
+                        { amount: 1, type: "credit" },
+                    ],
+                },
+                Partially: {
+                    Paid: [{ amount: 1, type: "credit" }],
+                    Unpaid: [
+                        { amount: order.totalPrice + delivery, type: "debit" },
+                        { amount: 1, type: "credit" },
+                    ],
+                }
+            },
+        };
+
+        let transactions;
+
+        if (order.refusal.type === "Partially") {
+            transactions = (transactionCases[captainModel] &&
+                transactionCases[captainModel]["Partially"] &&
+                transactionCases[captainModel]["Partially"][paymentStatus]) || [];
+        } else {
+            transactions = (transactionCases[captainModel] &&
+                transactionCases[captainModel][status] &&
+                transactionCases[captainModel][status][paymentStatus]) || [];
+        }
+
+        console.log("Transactions to be made:", JSON.stringify(transactions, null, 2));
+
+        for (const { amount, type } of transactions) {
+            if (order.refusal.type === "Partially") {
+                // Fetch the existing transaction
+                const existingTransaction = await Transaction.findOne({ walletId, orderId: order._id, type });
+
+                if (existingTransaction) {
+                    console.log(`Updating existing transaction: ${existingTransaction._id}`);
+
+                    // Recalculate the balance
+                    let oldAmount = existingTransaction.amount;
+                    let newAmount = amount;
+                    let balanceChange = oldAmount - newAmount;
+
+                    // Update the wallet balance
+                    if (type === "debit") {
+                        wallet.balance += (balanceChange);
+                    } else {
+                        wallet.balance -= balanceChange;
+                    }
+
+                    // Update the transaction amount
+                    existingTransaction.amount = newAmount;
+                    await existingTransaction.save();
+                } else {
+                    console.log("No existing transaction found. Creating new transaction...");
+                    await createTransaction(type, amount, order._id, walletId);
+
+                    // Adjust the wallet balance for the new transaction
+                    if (type === "debit") {
+                        wallet.balance -= amount;
+                    } else {
+                        wallet.balance += amount;
+                    }
+                }
+            } else {
+                // Normal transaction handling
+                let transaction = await Transaction.findOne({ walletId, type });
+                if (transaction) {
+                    await moveTransactionToHistory(transaction, amount, order._id, walletId, type);
+                } else {
+                    await createTransaction(type, amount, order._id, walletId);
+                }
+            }
+        }
+
+        // Save updated wallet balance
+        await wallet.save();
+        console.log("Updated Wallet Balance:", wallet.balance);
+    } catch (err) {
+        console.log("Error handling captain balance: ", err);
+    }
+};
+
 // Controller: Get Orders by User
 const getUserOrders = asyncHandler(async (req, res) => {
     try {
@@ -95,6 +319,7 @@ const createOrder = asyncHandler(async (req, res) => {
             street,
             orderType = 'Normal',
             preferredTime,
+            paymentStatus,
             status = 'Pending',
             postponedDate
         } = req.body;
@@ -141,13 +366,13 @@ const createOrder = asyncHandler(async (req, res) => {
             totalPrice,
             status,
             orderType,
-            paymentStatus: 'Unpaid', // Default payment status
+            paymentStatus,
             preferredTime,
             postponedDate: status === 'Postponed' ? postponedDate : null
         });
 
         // Save the order
-        await order.save();
+        const createdOrder = await order.save();
 
         // Add order reference to the user's orders array
         user.orders.push(order._id);
@@ -157,6 +382,9 @@ const createOrder = asyncHandler(async (req, res) => {
 
         // Save updated user
         await user.save();
+
+        // modify the balance in the users wallet
+        await handleUserBalance(createdOrder, user);
 
         // Emit a notification for the new order
         req.io.emit("newOrder", {
@@ -241,7 +469,6 @@ const editOrderDetails = asyncHandler(async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 });
-
 
 //Assign Order to Captains
 const assignCaptains = async (req, res) => {
@@ -350,7 +577,6 @@ const changeOrderStatusAdmin = async (req, res) => {
         // Allowed status updates for Admin
         const allowedStatuses = ['InStore', 'OutToDelivery'];
 
-        // Check if the provided status is valid
         if (!allowedStatuses.includes(status)) {
             return res.status(400).json({
                 message: `Invalid status. Admin can only change status to ${allowedStatuses.join(', ')}`
@@ -364,14 +590,35 @@ const changeOrderStatusAdmin = async (req, res) => {
         }
 
         if (status === "InStore") {
-            captain = await FulltimeCaptain.findById(order.procurementOfficer);
+            let captain = await FulltimeCaptain.findById(order.procurementOfficer);
             if (!captain) {
                 return res.status(404).json({ message: 'Captain not found' });
             }
-            checkDateForOrderHistory(captain.orderCountHistory, captain);
-            // Update captain's orders
+            if (typeof checkDateForOrderHistory === "function") {
+                checkDateForOrderHistory(captain.orderCountHistory, captain);
+            }
             captain.ordersCount = (captain.ordersCount || 0) + 1;
             await captain.save();
+        }
+
+        if (status === 'OutToDelivery') {
+            if (!order.deliveryCaptain) {
+                return res.status(400).json({ message: 'Delivery captain is missing' });
+            }
+
+            let captain = await FulltimeCaptain.findById(order.deliveryCaptain);
+            let captainModel = 'FulltimeCaptain';
+
+            if (!captain) {
+                captain = await FreelanceCaptain.findById(order.deliveryCaptain);
+                captainModel = 'FreelanceCaptain';
+            }
+
+            if (!captain) {
+                return res.status(404).json({ message: 'Captain not found' });
+            }
+
+            await handleCaptainBalance(order, captain, captainModel);
         }
 
         // Update the status
@@ -383,6 +630,7 @@ const changeOrderStatusAdmin = async (req, res) => {
             order
         });
     } catch (error) {
+        console.error("Error changing order status:", error);
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
@@ -442,6 +690,17 @@ const changeOrderStatusByCaptain = async (req, res) => {
         order.status = status;
         await order.save();
 
+        if (status === 'Refused' && refusalType === 'Partially') {
+            const captain = await (order.deliveryCaptainModel === "FreelanceCaptain" ?
+                FreelanceCaptain.findById(order.deliveryCaptain)
+                : FulltimeCaptain.findById(order.deliveryCaptain));
+
+            console.log("captain: ", captain);
+
+            await handleCaptainBalance(order, captain, order.
+                deliveryCaptainModel);
+        }
+
         res.status(200).json({
             message: 'Order status updated successfully by captain',
             order,
@@ -450,7 +709,6 @@ const changeOrderStatusByCaptain = async (req, res) => {
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
-
 
 
 // Export all controller functions

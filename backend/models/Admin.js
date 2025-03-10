@@ -25,7 +25,8 @@ const adminSchema = new mongoose.Schema({
         required: true,
     },
     profilePicture: { type: String, required: false },
-    salaryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salary' }
+    salaryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salary' },
+    walletNo: { type: mongoose.Schema.Types.ObjectId, ref: 'Wallet'},
 }, { timestamps: true });
 
 adminSchema.pre('save', async function (next) {

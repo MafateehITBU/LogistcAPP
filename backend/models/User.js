@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   orders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }],
   points: { type: Number, default: 0 }, // Reward points
-  walletNo: { type: String, required: false }, // Wallet number
+  walletNo: { type: mongoose.Schema.Types.ObjectId, ref: 'Wallet', required: true}, // Wallet number
   profilePicture: { type: String, required: false },
   age: { type: Number, required: true }, // Age of the user
   gender: { 

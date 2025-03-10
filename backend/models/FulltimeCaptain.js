@@ -26,7 +26,8 @@ const fulltimeCaptainSchema = mongoose.Schema({
         required: true,
     },
     walletNo: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Wallet',
         required: false,
     },
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }],
@@ -83,7 +84,7 @@ const fulltimeCaptainSchema = mongoose.Schema({
             December: { type: Number, default: 0 }
         }
     }],
-    salaryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salary'}
+    salaryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Salary' }
 }, { timestamps: true });
 
 fulltimeCaptainSchema.pre('save', async function (next) {

@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Wallet = require('../models/Wallet');
 const Inventory = require('../models/Inventory');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -55,6 +56,9 @@ exports.signup = [
                 fs.unlinkSync(req.file.path);
             }
 
+            const wallet = new Wallet();
+            const createdWallet = await wallet.save();
+
             let user;
 
             if (role === 'partner') {
@@ -68,6 +72,7 @@ exports.signup = [
                     phone,
                     age,
                     gender,
+                    walletNo: createdWallet._id,
                     profilePicture: profilePictureUrl, // Save the picture URL
                     role,
                     inventory: createdInventory.id,
@@ -80,6 +85,7 @@ exports.signup = [
                     phone,
                     age,
                     gender,
+                    walletNo: createdWallet._id,
                     profilePicture: profilePictureUrl, // Save the picture URL
                     role,
                 });

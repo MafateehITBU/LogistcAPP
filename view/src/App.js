@@ -23,6 +23,7 @@ import FastOrder from './components/FastOrder';
 import Salary from './components/Salary';
 import Footer from "./components/Footer";
 import Chat from './components/Chat';
+import Wallet from './components/Wallet';
 import ProtectedRoute from './components/ProtectedRoutes';
 
 // Create a Socket Context for global access
@@ -57,6 +58,7 @@ function AppContent() {
                 <Route path="/rewards" element={<ProtectedRoute component={Reward} rolesRequired={["Admin"]} />} />
                 <Route path="/salary" element={<ProtectedRoute component={Salary} rolesRequired={["Admin", "HR", "Accountant"]} />} />
                 <Route path="/chats" element={<ProtectedRoute component={Chat} rolesRequired={["Admin"]} />} />
+                <Route path="/wallet" element={<ProtectedRoute component={Wallet} rolesRequired={["Admin", "Accountant"]} />} />
               </Routes>
             </div>
             <Footer />

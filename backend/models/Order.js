@@ -5,69 +5,69 @@ const User = require('../models/User');
 const FulltimeCaptain = require('../models/FulltimeCaptain');
 
 const orderSchema = new mongoose.Schema({
-    user: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'User', 
-        required: true 
-    }, 
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     items: [
         {
             item: {
                 type: mongoose.Schema.Types.ObjectId,
                 required: true,
-                refPath: 'items.source' 
+                refPath: 'items.source'
             },
-            source: { 
-                type: String, 
-                required: true, 
-                enum: ['InventoryItem', 'UserItems'] 
+            source: {
+                type: String,
+                required: true,
+                enum: ['InventoryItem', 'UserItems']
             },
-            quantity: { 
-                type: Number, 
-                required: true 
+            quantity: {
+                type: Number,
+                required: true
             }
         }
     ],
-    city: { 
-        type: String, 
-        required: true, 
+    city: {
+        type: String,
+        required: true,
         enum: ['Amman', 'Irbid', 'Zarqa', 'Mafraq', 'Jerash', 'Ajloun', 'Madaba', 'Karak', 'Tafilah', 'Ma’an', 'Aqaba']
     },
-    district: { 
-        type: String, 
-        enum: ['Naaour', 'Wadi-Alseer', 'Marka', 'Al-Gezza', 'Sahab', 'Qwesmeh', 'Mwaqar', 'AL-Jamma', 'AL-Qasaba'] 
+    district: {
+        type: String,
+        enum: ['Naaour', 'Wadi-Alseer', 'Marka', 'Al-Gezza', 'Sahab', 'Qwesmeh', 'Mwaqar', 'AL-Jamma', 'AL-Qasaba']
     },
-    area: { 
-        type: String, 
-        required: true 
+    area: {
+        type: String,
+        required: true
     },
-    street: { 
-        type: String, 
-        required: true 
+    street: {
+        type: String,
+        required: true
     },
-    totalPrice: { 
-        type: Number, 
-        required: true 
+    totalPrice: {
+        type: Number,
+        required: true
     },
-    status: { 
-        type: String, 
-        required: true, 
-        enum: ['Pending', 'InStore', 'OutToDelivery', 'Delivered', 'Refused', 'Postponed'], 
-        default: 'Pending' 
+    status: {
+        type: String,
+        required: true,
+        enum: ['Pending', 'InStore', 'OutToDelivery', 'Delivered', 'Refused', 'Postponed'],
+        default: 'Pending'
     },
-    orderType: { 
-        type: String, 
-        required: true, 
-        enum: ['Normal', 'Fast'], 
-        default: 'Normal' 
+    orderType: {
+        type: String,
+        required: true,
+        enum: ['Normal', 'Fast'],
+        default: 'Normal'
     },
     refusal: {
         description: { type: String },
-        type: { 
-            type: String, 
-            enum: ['NoResponse', 'Wrong Location', 'Partially', 'Ignore'] 
+        type: {
+            type: String,
+            enum: ['NoResponse', 'Wrong Location', 'Partially', 'Ignore']
         }
-    }, 
+    },
     paymentStatus: {
         type: String,
         required: true,
@@ -75,24 +75,24 @@ const orderSchema = new mongoose.Schema({
         default: 'Unpaid'
     },
     notes: {
-        type: String, 
+        type: String,
         required: false
     },
-    preferredTime: { 
+    preferredTime: {
         type: String,
         required: false
     }, // New field for preferred delivery time
-    postponedDate: { 
-        type: Date, 
-        required: function () { return this.status === 'Postponed'; } 
+    postponedDate: {
+        type: Date,
+        required: function () { return this.status === 'Postponed'; }
     },
-    procurementOfficer: { 
-        type: mongoose.Schema.Types.ObjectId, 
+    procurementOfficer: {
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'FulltimeCaptain',
         default: null
     },
-    deliveryCaptain: { 
-        type: mongoose.Schema.Types.ObjectId, 
+    deliveryCaptain: {
+        type: mongoose.Schema.Types.ObjectId,
         refPath: 'deliveryCaptainModel',
         default: null
     },
@@ -119,14 +119,22 @@ orderSchema.pre('save', async function (next) {
                     if (inventoryItem.quantity < item.quantity) throw new Error('Not enough inventory quantity');
                     inventoryItem.quantity -= item.quantity;
                     await inventoryItem.save();
-                    total += inventoryItem.price * item.quantity;
+                    if (this.paymentStatus === 'Paid') {
+                        total = 0;
+                    } else {
+                        total += inventoryItem.price * item.quantity;
+                    }
                 } else if (item.source === 'UserItems') {
                     const userItem = await UserItems.findById(item.item);
                     if (!userItem) throw new Error('User item not found');
                     if (userItem.quantity < item.quantity) throw new Error('Not enough user item quantity');
                     userItem.quantity -= item.quantity;
                     await userItem.save();
-                    total += userItem.price * item.quantity;
+                    if (this.paymentStatus === 'Paid') {
+                        total = 0;
+                    } else {
+                        total += userItem.price * item.quantity;
+                    }
                 }
             }
         } else if (this.isModified('items')) {
@@ -155,14 +163,22 @@ orderSchema.pre('save', async function (next) {
                     if (inventoryItem.quantity < newItem.quantity) throw new Error('Not enough inventory quantity');
                     inventoryItem.quantity -= newItem.quantity;
                     await inventoryItem.save();
-                    total += inventoryItem.price * newItem.quantity;
+                    if (newItem.paymentStatus === 'Paid') {
+                        total += 0;
+                    } else {
+                        total += inventoryItem.price * newItem.quantity;
+                    }
                 } else if (newItem.source === 'UserItems') {
                     const userItem = await UserItems.findById(newItem.item);
                     if (!userItem) throw new Error('User item not found');
                     if (userItem.quantity < newItem.quantity) throw new Error('Not enough user item quantity');
                     userItem.quantity -= newItem.quantity;
                     await userItem.save();
-                    total += userItem.price * newItem.quantity;
+                    if (newItem.paymentStatus === 'Paid') {
+                        total += 0;
+                    } else {
+                        total += userItem.price * newItem.quantity;
+                    }
                 }
             }
         } else {

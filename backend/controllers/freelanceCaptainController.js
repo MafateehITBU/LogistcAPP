@@ -2,9 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-const Captain = require('../models/freelanceCaptain');
+const Captain = require('../models/FreelanceCaptain');
 const FulltimeCaptain = require('../models/FulltimeCaptain');
 const Car = require('../models/Car');
+const Wallet = require('../models/Wallet');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const fs = require('fs/promises'); // Use async fs functions
@@ -256,6 +257,13 @@ exports.updateAccountStatus = async (req, res) => {
             return res.status(404).json({ message: 'Captain not found' });
         }
 
+        // Create a wallet if status is set to approved
+        if (accountStatus === 'approved') {
+            const wallet = new Wallet();
+            const createdWallet = await wallet.save();
+
+            captain.walletNo = createdWallet._id;
+        }
         captain.accountStatus = accountStatus;
         await captain.save();
 

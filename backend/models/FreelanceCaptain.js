@@ -25,7 +25,8 @@ const freelanceCaptainSchema = mongoose.Schema({
         default: 'delivery',
     },
     walletNo: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Wallet',
         required: false,
     },
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }],

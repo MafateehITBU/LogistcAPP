@@ -5,6 +5,7 @@ const asyncHandler = require('express-async-handler');
 const Captain = require('../models/FulltimeCaptain');
 const Car = require('../models/Car');
 const Salary = require('../models/Salary');
+const Wallet = require('../models/Wallet');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const fs = require('fs');
@@ -164,14 +165,19 @@ exports.updateAccountStatus = async (req, res) => {
         // Update the status
         captain.accountStatus = accountStatus;
 
+        // Create a salary and wallet if status is set to approved
         if (accountStatus === 'approved') {
             const salary = new Salary({
                 startDate: new Date(),
                 position: 'Fulltime Captain',
             });
-
             const createdSalary = await salary.save();
+
+            const wallet = new Wallet();
+            const createdWallet = await wallet.save();
+
             captain.salaryId = createdSalary.id;
+            captain.walletNo = createdWallet._id;
         }
 
         await captain.save();
