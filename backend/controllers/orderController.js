@@ -178,8 +178,7 @@ const handleCaptainBalance = async (order, captain, captainModel) => {
         const transactionCases = {
             FulltimeCaptain: {
                 OutToDelivery: {
-                    Paid: [{ amount: delivery, type: "debit" }],
-                    Unpaid: [{ amount: totalPrice + delivery, type: "debit" }],
+                    Unpaid: [{ amount: totalPrice, type: "debit" }],
                 },
                 Refused: {
                     Unpaid: [{ amount: order.totalPrice, type: "debit" }],
@@ -192,21 +191,21 @@ const handleCaptainBalance = async (order, captain, captainModel) => {
                 OutToDelivery: {
                     Paid: [{ amount: 1, type: "credit" }],
                     Unpaid: [
-                        { amount: totalPrice + delivery, type: "debit" },
+                        { amount: totalPrice , type: "debit" },
                         { amount: 1, type: "credit" },
                     ],
                 },
                 Refused: {
                     Paid: [{ amount: 1, type: "credit" }],
                     Unpaid: [
-                        { amount: order.totalPrice + delivery, type: "debit" },
+                        { amount: order.totalPrice, type: "debit" },
                         { amount: 1, type: "credit" },
                     ],
                 },
                 Partially: {
                     Paid: [{ amount: 1, type: "credit" }],
                     Unpaid: [
-                        { amount: order.totalPrice + delivery, type: "debit" },
+                        { amount: order.totalPrice, type: "debit" },
                         { amount: 1, type: "credit" },
                     ],
                 }

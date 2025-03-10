@@ -160,8 +160,8 @@ exports.getCompanyWallet = asyncHandler(async (req, res) => {
             walletId: { $in: walletIds, $ne: companyWalletId }
         }).lean();
 
-        let totalCompanyDebits = 0;
-        let totalCompanyCredits = 0;
+        let totalCompanyDebits = 0, totalCompanyDebits2 = 0;
+        let totalCompanyCredits = 0, totalCompanyCredits2 = 0;
 
         transactions.forEach(txn => {
             if (txn.type === 'credit') {
@@ -181,6 +181,20 @@ exports.getCompanyWallet = asyncHandler(async (req, res) => {
             }
         });
 
+        transactions.forEach(txn => {
+            if (txn.type === 'credit') {
+                totalCompanyDebits2 += txn.amount;
+                txn.transactionHistory.forEach(history => {
+                    totalCompanyDebits2 += history.amount;
+                });
+            } else if (txn.type === 'debit') {
+                totalCompanyCredits2 += txn.amount;
+                txn.transactionHistory.forEach(history => {
+                    totalCompanyCredits2 += history.amount;
+                });
+            }
+        });
+
         // Get company transactions
         const companyTransactions = await Transaction.find({ walletId: companyWalletId });
 
@@ -190,7 +204,7 @@ exports.getCompanyWallet = asyncHandler(async (req, res) => {
         }
 
         // Calculate Balance
-        const calculatedBalance = totalCompanyCredits - totalCompanyDebits;
+        const calculatedBalance = totalCompanyCredits2 - totalCompanyDebits2;
 
         // Update balance in the database
         companyWallet.balance = calculatedBalance;
