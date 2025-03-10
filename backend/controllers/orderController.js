@@ -88,6 +88,7 @@ const moveTransactionToHistory = async (transaction, amount, orderId, walletId, 
         // Update the existing transaction with new data
         transaction.amount = amount;
         transaction.orderId = orderId;
+        transaction.paid = false;
 
         await transaction.save();
         await updateWalletBalance(walletId, amount, type);
